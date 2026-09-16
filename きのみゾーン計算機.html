@@ -1,0 +1,2472 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>きのみゾーン計算機</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#F7F5FB; --surface:#FFFFFF; --surface-alt:#F0ECF9; --ink:#201D2E; --muted:#6E6884;
+    --border:#E1DBEF; --accent:#B32E70; --accent-ink:#FFFFFF; --accent-soft:#F7DCEA;
+    --best:#B8791A; --best-soft:#FBEBD1; --auto:#3E7C6B; --auto-soft:#E1F0EA;
+    --shadow: 0 1px 2px rgba(32,29,46,.06), 0 8px 24px -12px rgba(32,29,46,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#15121D; --surface:#1E1A2B; --surface-alt:#262137; --ink:#EEE9F8; --muted:#9C93B5;
+      --border:#342D49; --accent:#FF7FB4; --accent-ink:#2A0F1D; --accent-soft:#3B2130;
+      --best:#F0C465; --best-soft:#3A2E12; --auto:#7FCBB4; --auto-soft:#1D362E;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#15121D; --surface:#1E1A2B; --surface-alt:#262137; --ink:#EEE9F8; --muted:#9C93B5;
+    --border:#342D49; --accent:#FF7FB4; --accent-ink:#2A0F1D; --accent-soft:#3B2130;
+    --best:#F0C465; --best-soft:#3A2E12; --auto:#7FCBB4; --auto-soft:#1D362E;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px -14px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg); color:var(--ink); margin:0;
+    font-family:'IBM Plex Sans', system-ui, -apple-system, "Hiragino Kaku Gothic ProN", sans-serif;
+    padding-inline:16px; padding-block:28px 64px;
+  }
+  .wrap{max-width:1040px; margin:0 auto; display:flex; flex-direction:column; gap:26px;}
+
+  h1,h2,h3,h4{font-family:'Fraunces', serif; text-wrap:balance; margin:0; letter-spacing:-.01em;}
+  h1{font-size:clamp(1.5rem,1.15rem + 1.5vw,2.15rem); font-weight:700;}
+  h2{font-size:1.1rem; font-weight:600;}
+  h3{font-size:.98rem; font-weight:600;}
+  h4{font-size:.86rem; font-weight:600;}
+  p{line-height:1.7; color:var(--muted); margin:0;}
+  .mono{font-family:'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric:tabular-nums;}
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size:.7rem; letter-spacing:.11em; text-transform:uppercase;
+    color:var(--accent); font-weight:600;
+  }
+
+  header{display:flex; flex-direction:column; gap:8px;}
+  header p{max-width:64ch;}
+
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:18px 20px; box-shadow:var(--shadow);
+  }
+  .card > * + *{ margin-top:13px; }
+
+  .summary-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:12px; }
+  .summary-tile{
+    border:1px solid var(--border); border-radius:12px; padding:14px 16px; background:var(--surface-alt);
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .summary-tile.is-top{ border-color:var(--best); background:var(--best-soft); }
+  .summary-tile .tile-name{ font-weight:600; font-size:.95rem; }
+  .summary-tile .tile-total{ font-family:'IBM Plex Mono', monospace; font-size:1.45rem; font-weight:600; }
+  .summary-tile .tile-sub{ font-size:.76rem; color:var(--muted); }
+  .badge{
+    display:inline-flex; align-items:center; gap:4px; font-size:.68rem; font-weight:600;
+    padding:2px 8px; border-radius:99px; background:var(--best); color:#2A1B02; width:fit-content;
+  }
+  .badge-auto{ background:var(--auto); color:#0B2019; }
+  .rate-line{ font-size:.78rem; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; }
+  .rate-line b{ color:var(--ink); font-family:'IBM Plex Mono',monospace; font-weight:600; }
+
+  .field-row{ display:flex; flex-wrap:wrap; gap:10px; align-items:end; }
+  .field{ display:flex; flex-direction:column; gap:4px; flex:1 1 110px; min-width:0; }
+  .field label{ font-size:.7rem; color:var(--muted); font-weight:600; letter-spacing:.01em; }
+  .field input, .field select{
+    font:inherit; font-family:'IBM Plex Mono', monospace; background:var(--bg); color:var(--ink);
+    border:1px solid var(--border); border-radius:8px; padding:7px 9px; width:100%; font-size:.86rem;
+  }
+  .field input:focus, .field select:focus, button:focus-visible, input[type="checkbox"]:focus-visible, input[type="radio"]:focus-visible{
+    outline:2px solid var(--accent); outline-offset:1px;
+  }
+  .field.name-field{ flex:1 1 160px; }
+  .field.name-field input{ font-family:'IBM Plex Sans', sans-serif; font-weight:500; }
+
+  .tri{ display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .tri label{ flex:1; text-align:center; padding:6px 4px; font-size:.72rem; cursor:pointer; background:var(--bg); color:var(--muted); border-right:1px solid var(--border); }
+  .tri label:last-child{ border-right:none; }
+  .tri input{ display:none; }
+  .tri input:checked + span{ font-weight:700; }
+  .tri label:has(input:checked){ background:var(--accent-soft); color:var(--accent); }
+
+  .chip-toggle{ display:inline-flex; align-items:center; gap:5px; border:1px solid var(--border); border-radius:8px; padding:5px 9px; font-size:.75rem; cursor:pointer; background:var(--bg); user-select:none; }
+  .chip-toggle input{ accent-color:var(--accent); }
+  .chip-row{ display:flex; flex-wrap:wrap; gap:6px; }
+
+  .member-card{ border:1px solid var(--border); border-radius:12px; padding:14px 16px; background:var(--surface-alt); }
+  .member-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+  .member-head .pname{ display:flex; align-items:baseline; gap:8px; }
+  .member-head .ptype{ font-size:.68rem; color:var(--muted); font-family:'IBM Plex Mono',monospace; }
+  .subgrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:2px; }
+  @media (max-width:560px){ .subgrid{ grid-template-columns:1fr; } }
+  .mini-label{ font-size:.68rem; color:var(--muted); font-weight:600; margin-bottom:3px; display:block; }
+  .result-strip{ margin-top:12px; padding-top:12px; border-top:1px dashed var(--border); display:flex; flex-wrap:wrap; gap:14px; font-size:.78rem; }
+  .result-strip .item{ display:flex; flex-direction:column; gap:2px; }
+  .result-strip .item .v{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:.92rem; }
+  .result-strip .item .k{ color:var(--muted); font-size:.68rem; }
+
+  button{ font:inherit; cursor:pointer; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--ink); padding:7px 12px; font-size:.82rem; font-weight:600; }
+  button:hover{ background:var(--surface-alt); }
+  .btn-accent{ background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+  .btn-accent:hover{ filter:brightness(1.06); }
+  .btn-danger-ghost{ background:transparent; border-color:transparent; color:var(--muted); font-size:.72rem; padding:4px 8px; }
+  .btn-danger-ghost:hover{ color:var(--accent); }
+
+  svg.chart{ width:100%; height:auto; display:block; }
+  svg.chart text{ fill:var(--muted); font-family:'IBM Plex Mono', monospace; font-size:9px; }
+  svg.chart .zoneline{ fill:none; stroke:var(--accent); stroke-width:2.2; }
+  svg.chart .gridline{ stroke:var(--border); stroke-width:1; }
+  svg.chart .switchline{ stroke:var(--best); stroke-width:1.4; stroke-dasharray:3 3; }
+  svg.chart .switchdot{ fill:var(--best); }
+
+  details{ border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--surface); }
+  details summary{ cursor:pointer; list-style:none; padding:10px 14px; font-size:.85rem; font-weight:600; display:flex; justify-content:space-between; align-items:center; background:var(--surface-alt); }
+  details summary::-webkit-details-marker{ display:none; }
+  details summary::after{ content:"▾"; color:var(--muted); transition:transform .15s; font-size:.7rem;}
+  details[open] summary::after{ transform:rotate(180deg); }
+  .table-wrap{ overflow-x:auto; }
+  table{ border-collapse:collapse; width:100%; font-size:.82rem; }
+  thead th{ text-align:right; font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:.66rem; letter-spacing:.03em; text-transform:uppercase; color:var(--muted); padding:8px 12px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  thead th:first-child, tbody td:first-child{ text-align:left; }
+  tbody td{ padding:7px 12px; border-bottom:1px solid var(--border); text-align:right; font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  tbody tr.is-best td{ background:var(--best-soft); font-weight:600; }
+
+  .formula-box{ font-family:'IBM Plex Mono',monospace; font-size:.76rem; line-height:1.85; background:var(--surface-alt); border:1px solid var(--border); border-radius:10px; padding:13px 15px; overflow-x:auto; white-space:pre; }
+  .note{ font-size:.76rem; color:var(--muted); background:var(--surface-alt); border:1px solid var(--border); border-radius:8px; padding:9px 11px; line-height:1.6; }
+  .concept-list{ margin:0; padding-left:1.25em; display:flex; flex-direction:column; gap:10px; font-size:.86rem; line-height:1.75; color:var(--ink); }
+  .concept-list li{ padding-left:2px; }
+  .concept-details summary::after{ font-size:1rem; color:var(--accent); }
+  .concept-details summary:hover{ background:var(--accent-soft); }
+  .fold-hint{ font-size:.68rem; font-weight:400; color:var(--muted); margin-left:8px; }
+  footer{ font-size:.78rem; color:var(--muted); line-height:1.8; padding-top:6px; border-top:1px solid var(--border); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>きのみゾーン計算機</h1>
+    <p class="note">エナジーチャージ・ゾーン1回あたりの上昇値・スキル確率など、ゲーム内の数値データは <a href="https://pks.raenonx.cc/ja" target="_blank" rel="noopener">raenonx.cc（RaenonX ポケモンスリープ攻略Wiki）</a> の調査データを出典としています。</p>
+  </header>
+
+  <details class="concept-details">
+    <summary><span>このツール独自の考え方<span class="fold-hint">（タップで開閉）</span></span></summary>
+    <div style="padding:2px 14px 14px;">
+      <ol class="concept-list">
+        <li>きのみゾーンの伸びは、実際のランダムなスキル発動ではなく、「発動確率どおりに時間が経つにつれて少しずつ均等に伸びていく」という平均的な動きとして計算（運のブレは反映しない）。</li>
+        <li>切替対象以外の編成メンバーは、食材エナジーとメインスキルのエナジーが計算対象外（バリヤードの「ものまね」を除く）。ツールを早く仕上げるため、きのみゾーンや切替対象自身が稼ぐエナジーに影響しないと思われる部分は実装の優先度を下げた形。また「その他のポケモン」枠は自分自身の生産を一切計算せず、チームがきのみバースト等で受け取る分の換算にだけ使う簡易枠。</li>
+        <li>ネイティオ・ムシャーナは睡眠設定に関係なく終日「いつの間に育成」（きのみ確率100%・所持数キャップなし）として計算。</li>
+        <li>ミュウツーの開始時ゾーン期待値は、「所持数が満杯になるまでのスキル判定回数」をスキル発動権の上限でキャップして自動算出。</li>
+      </ol>
+    </div>
+  </details>
+
+  <section class="card">
+    <h2>フィールド設定（共通）</h2>
+    <div class="field-row">
+      <div class="field"><label for="f-select">フィールド</label>
+        <select id="f-select">
+          <option value="wakakusa">ワカクサ本島</option>
+          <option value="lapis">ラピスラズリ湖畔</option>
+          <option value="wakakusa_ex">ワカクサ本島 EX</option>
+          <option value="cyan_ex">シアンの砂浜 EX</option>
+        </select>
+      </div>
+      <div class="field"><label for="f-ctick">いいキャンプチケット</label>
+        <select id="f-ctick"><option value="1">あり</option><option value="0">なし</option></select>
+      </div>
+    </div>
+
+    <div class="field-row" id="f-wakakusa-box">
+      <label class="chip-toggle"><input type="checkbox" id="f-wk-mago"><span>マゴのみが好物3種に含まれる</span></label>
+    </div>
+
+    <p class="note" id="f-lapis-note" style="display:none;">ラピスラズリ湖畔は好物きのみ固定（ドリのみ・マゴのみ・クラボのみ）。マゴのみは常にこのフィールドの好物として2倍。</p>
+
+    <div id="f-ex-box" style="display:none;">
+      <div class="field-row">
+        <div class="field"><label for="f-ex-main">メインきのみ</label>
+          <select id="f-ex-main"><option value="">未選択</option><option value="mago">マゴのみ</option><option value="other">それ以外</option></select>
+        </div>
+        <div class="field"><label for="f-ex-sub1">サブきのみ1</label>
+          <select id="f-ex-sub1"><option value="">未選択</option><option value="mago">マゴのみ</option><option value="other">それ以外</option></select>
+        </div>
+        <div class="field"><label for="f-ex-sub2">サブきのみ2</label>
+          <select id="f-ex-sub2"><option value="">未選択</option><option value="mago">マゴのみ</option><option value="other">それ以外</option></select>
+        </div>
+        <div class="field"><label for="f-ex-other">ランダムなEXフィールド効果</label>
+          <select id="f-ex-other"><option value="none">なし</option><option value="berry">好物きのみ2.4倍</option><option value="skill">スキル確率+25%</option><option value="food">食材+1個（このツールでは未反映）</option></select>
+        </div>
+      </div>
+      <p class="note" id="f-ex-desc"></p>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <span class="mini-label">イベント最大所持数ボーナス（全メンバー共通）</span>
+        <div class="tri">
+          <label><input type="radio" name="event-capacity" id="event-capacity-0" value="0"><span>通常</span></label>
+          <label><input type="radio" name="event-capacity" id="event-capacity-8" value="8"><span>+8個</span></label>
+          <label><input type="radio" name="event-capacity" id="event-capacity-15" value="15"><span>+15個</span></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-row" style="margin-top:6px;">
+      <div class="field">
+        <span class="mini-label">イベント補正：タイプ指定</span>
+        <div class="tri">
+          <label><input type="radio" name="ec-type-restrict" value="0"><span>指定なし</span></label>
+          <label><input type="radio" name="ec-type-restrict" value="1"><span>指定あり</span></label>
+        </div>
+      </div>
+      <div class="field">
+        <span class="mini-label">イベント補正：とくいなもの指定</span>
+        <div class="tri">
+          <label><input type="radio" name="ec-specialty-restrict" value="0"><span>指定なし</span></label>
+          <label><input type="radio" name="ec-specialty-restrict" value="1"><span>指定あり</span></label>
+        </div>
+      </div>
+    </div>
+    <div id="ec-type-box" style="display:none; margin-top:6px;">
+      <span class="mini-label">対象タイプ（複数選択可・未選択時は誰にも適用されない）</span>
+      <div class="chip-row" style="margin-top:6px;" id="ec-type-chips"></div>
+    </div>
+    <div id="ec-specialty-box" style="display:none; margin-top:6px;">
+      <span class="mini-label">対象のとくいなもの（複数選択可・未選択時は誰にも適用されない）</span>
+      <div class="chip-row" style="margin-top:6px;">
+        <label class="chip-toggle"><input type="checkbox" class="ec-specialty-check" value="きのみとくい"><span>きのみとくい</span></label>
+        <label class="chip-toggle"><input type="checkbox" class="ec-specialty-check" value="食材とくい"><span>食材とくい</span></label>
+        <label class="chip-toggle"><input type="checkbox" class="ec-specialty-check" value="スキルとくい"><span>スキルとくい</span></label>
+      </div>
+    </div>
+
+    <div class="field-row" style="margin-top:10px;">
+      <div class="field">
+        <span class="mini-label">イベント補正：メインスキル発生確率</span>
+        <div class="tri">
+          <label><input type="radio" name="ec-skill" value="1.0"><span>1.0倍</span></label>
+          <label><input type="radio" name="ec-skill" value="1.25"><span>1.25倍</span></label>
+          <label><input type="radio" name="ec-skill" value="1.5"><span>1.5倍</span></label>
+          <label><input type="radio" name="ec-skill" value="custom"><span>カスタム</span></label>
+        </div>
+        <input type="number" id="ec-skill-custom" step="0.1" min="0" style="display:none;margin-top:6px;max-width:120px;">
+      </div>
+      <div class="field">
+        <span class="mini-label">イベント補正：きのみ個数</span>
+        <div class="tri">
+          <label><input type="radio" name="ec-berrycount" value="0"><span>通常</span></label>
+          <label><input type="radio" name="ec-berrycount" value="1"><span>+1個</span></label>
+        </div>
+      </div>
+      <div class="field">
+        <span class="mini-label">イベント補正：食材個数</span>
+        <div class="tri">
+          <label><input type="radio" name="ec-foodcount" value="0"><span>通常</span></label>
+          <label><input type="radio" name="ec-foodcount" value="1"><span>+1個</span></label>
+        </div>
+      </div>
+    </div>
+    <div class="field-row" style="margin-top:10px;">
+      <div class="field">
+        <span class="mini-label">イベント補正：きのみバーストの効果量（ミュウ）</span>
+        <div class="tri">
+          <label><input type="radio" name="ec-berryburst" value="1.0"><span>1.0倍</span></label>
+          <label><input type="radio" name="ec-berryburst" value="1.25"><span>1.25倍</span></label>
+          <label><input type="radio" name="ec-berryburst" value="1.4"><span>1.4倍</span></label>
+          <label><input type="radio" name="ec-berryburst" value="1.5"><span>1.5倍</span></label>
+          <label><input type="radio" name="ec-berryburst" value="custom"><span>カスタム</span></label>
+        </div>
+        <input type="number" id="ec-berryburst-custom" step="0.1" min="0" style="display:none;margin-top:6px;max-width:120px;">
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>評価期間共通設定</h2>
+    <div class="field-row">
+      <div class="field"><label for="start-dow">起点：曜日</label>
+        <select id="start-dow"><option value="0">月</option><option value="1">火</option><option value="2">水</option><option value="3">木</option><option value="4">金</option><option value="5">土</option><option value="6">日</option></select>
+      </div>
+      <div class="field"><label for="start-time">起点：時刻</label><input type="time" id="start-time"></div>
+      <div class="field"><label for="end-dow">終了：曜日</label>
+        <select id="end-dow"><option value="0">月</option><option value="1">火</option><option value="2">水</option><option value="3">木</option><option value="4">金</option><option value="5">土</option><option value="6">日</option></select>
+      </div>
+      <div class="field"><label for="end-time">終了：時刻</label><input type="time" id="end-time"></div>
+      <div class="field"><label for="window">評価期間（分・自動計算）</label><input type="number" id="window" step="1" min="1" disabled></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <span class="mini-label">睡眠中の所持数ロス</span>
+        <div class="tri">
+          <label><input type="radio" name="sleep-enabled" id="sleep-enabled-on" value="1"><span>所持考慮</span></label>
+          <label><input type="radio" name="sleep-enabled" id="sleep-enabled-off" value="0"><span>所持非考慮</span></label>
+        </div>
+      </div>
+      <div class="field"><label for="sleep-start">就寝時刻</label><input type="time" id="sleep-start"></div>
+      <div class="field"><label for="sleep-end">起床時刻</label><input type="time" id="sleep-end"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="member-head">
+      <h2>切替対象以外の編成メンバー(4枠)</h2>
+    </div>
+    <div id="support-container" style="display:flex; flex-direction:column; gap:12px;"></div>
+  </section>
+
+  <section class="card">
+    <div class="member-head">
+      <h2>ミュウツー設定（切替元）</h2>
+      <button class="btn-accent" id="add-mewtwo">＋ 設定を追加</button>
+    </div>
+    <div id="mewtwo-container" style="display:flex; flex-direction:column; gap:14px;"></div>
+  </section>
+
+  <section class="card">
+    <div class="member-head">
+      <h2>切替先設定</h2>
+      <button class="btn-accent" id="add-target">＋ 切替先を追加</button>
+    </div>
+    <div id="target-container" style="display:flex; flex-direction:column; gap:14px;"></div>
+  </section>
+
+  <section class="card" id="summary-card">
+    <h2>比較サマリー</h2>
+    <div class="summary-grid" id="summary-grid"></div>
+    <div class="summary-grid" id="summary-grid-noswitch"></div>
+  </section>
+
+  <section class="card" id="results-card">
+    <h2>結果</h2>
+    <div id="results-container" style="display:flex; flex-direction:column; gap:22px;"></div>
+  </section>
+
+  <section class="card">
+    <h2>計算式</h2>
+    <div class="formula-box" id="formula-box"></div>
+  </section>
+
+  <section class="card">
+    <h2>検算用：計算過程の詳細</h2>
+    <p class="note" style="margin-bottom:10px;">サブ機能。上の「計算式」の各項目に、今の設定値を実際に代入した計算過程を表示する。手計算で検算したいときに使う（表示上は途中で丸めているが、内部計算は丸めずに行っている）。</p>
+    <div id="audit-container"></div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var STORE_KEY = "zoneSwitchCalc.v7";
+
+  // foodSlots: 所持数(バッグ)を消費する「食材1回あたりの個数」の元データ。tool.html と同じ構造（lv1は固定1種、
+  // lv30・lv60はそれぞれ個体ごとに2〜3種の候補から1つを持つ）で、UI上でどの候補を持っているか選択できるようにし、
+  // 選んだ候補から computeAvgFoodCount() が「lv1固定＋選択lv30＋選択lv60（該当レベル未満なら除外）の平均個数」を
+  // tool.html と全く同じ式（totalCount/activeFoodSlots.length）で算出する（概算の単純平均ではなく実データを直接使う）。
+  // エーフィ/クレセリアはtool.htmlのfoodSlotsデータをそのまま転記。ミュウツー/サーナイト/バリヤードはtool.htmlに
+  // 未収録のため、ポケモンスリープ個体値チェッカー(pokemonsleepdaifuku.com)の食材データ（2026/09/15閲覧）から転記。
+  // ネイティオ・ボーマンダ・ムシャーナは「きのみ得意」の終日いつの間に育成扱い（idleAllDay）のため所持数を消費せず、foodSlotsは持たない。
+  var POKEMON_DB = {
+    // evolutionStages: 現在の種族に至るまでの進化段階数（無進化・伝説・幻は0）。所持数計算で+5×evolutionStagesとして加算する（2026/09/15追加）
+    // foodEnergyTracked: true の3体（ミュウツー・クレセリア・ミュウ）のみ、食材エナジーを実際のエナジー合計に反映する
+    // （本人確認済み・2026/09/15：「ミュウツー,クレセリア,ミュウに関しては食材エナジーを反映させたい」）。
+    // サポート4枠（サーナイト・エーフィ・ネイティオ・ボーマンダ・ムシャーナ・バリヤード）は対象外のまま据え置き。
+    // energy値はtool.html由来（食材ごとの基礎エナジーは種族に依存せず食材名で一意に決まる）。
+    mewtwo:    { name:'ミュウツー', type:'エスパー', rawBaseSpeed:2300, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.160, skillProb:0.029, baseCapacity:24, specialty:'スキルとくい', defaultBerryCount:1, evolutionStages:0, maxSkillRights:2, foodEnergyTracked:true, // 伝説・無進化・スキル発動権上限2（スキルとくい、本人確認済み・2026/09/15）
+      // ミュウツーはtool.htmlにデータが無いため、他種族の同名食材エントリからenergy値を転記（食材名で一意に決まるため）
+      foodSlots: { lv1:[{label:'A',name:'ワカクサ大豆',count:1,energy:100}], lv30:[{label:'A',name:'ワカクサ大豆',count:2,energy:100},{label:'B',name:'ワカクサコーン',count:2,energy:140}], lv60:[{label:'A',name:'ワカクサ大豆',count:4,energy:100},{label:'B',name:'ワカクサコーン',count:3,energy:140},{label:'C',name:'ほっこりポテト',count:3,energy:124}] } },
+    gardevoir: { name:'サーナイト', type:'エスパー', rawBaseSpeed:2400, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.144, skillProb:0.042, baseCapacity:18, specialty:'スキルとくい', defaultBerryCount:1, evolutionStages:2, // モンジャラ→キルリア→サーナイト
+      foodSlots: { lv1:[{label:'A',name:'とくせんリンゴ',count:1}], lv30:[{label:'A',name:'とくせんリンゴ',count:2},{label:'B',name:'ワカクサコーン',count:1}], lv60:[{label:'A',name:'とくせんリンゴ',count:4},{label:'B',name:'ワカクサコーン',count:2},{label:'C',name:'ふといながねぎ',count:2}] } },
+    espeon:    { name:'エーフィ',   type:'エスパー', rawBaseSpeed:2400, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.164, skillProb:0.044, baseCapacity:21, specialty:'スキルとくい', defaultBerryCount:1, evolutionStages:1, // イーブイ→エーフィ
+      foodSlots: { lv1:[{label:'A',name:'モーモーミルク',count:1}], lv30:[{label:'A',name:'モーモーミルク',count:2},{label:'B',name:'リラックスカカオ',count:1}], lv60:[{label:'A',name:'モーモーミルク',count:4},{label:'B',name:'リラックスカカオ',count:2},{label:'C',name:'マメミート',count:3}] } },
+    xatu:      { name:'ネイティオ', type:'エスパー', rawBaseSpeed:2500, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.191, skillProb:0.025, baseCapacity:24, specialty:'きのみとくい', defaultBerryCount:2, evolutionStages:1, idleAllDay:true }, // ネイティ→ネイティオ（きのみ得意のため所持数キャップ自体を使わず影響なし）
+    cresselia: { name:'クレセリア', type:'エスパー', rawBaseSpeed:2300, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.239, skillProb:0.041, baseCapacity:22, specialty:'スキルとくい', defaultBerryCount:1, evolutionStages:0, foodEnergyTracked:true, // 伝説・無進化
+      foodSlots: { lv1:[{label:'A',name:'あったかジンジャー',count:1,energy:109}], lv30:[{label:'A',name:'あったかジンジャー',count:2,energy:109},{label:'B',name:'リラックスカカオ',count:2,energy:151}], lv60:[{label:'A',name:'あったかジンジャー',count:4,energy:109},{label:'B',name:'リラックスカカオ',count:3,energy:151},{label:'C',name:'あんみんトマト',count:4,energy:110}] } },
+    musharna:  { name:'ムシャーナ', type:'エスパー', rawBaseSpeed:2800, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.188, skillProb:0.041, baseCapacity:29, specialty:'きのみとくい', defaultBerryCount:2, evolutionStages:1, idleAllDay:true }, // ムンナ→ムシャーナ（同上・影響なし）
+    mrmime:    { name:'バリヤード', type:'エスパー', rawBaseSpeed:2800, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.216, skillProb:0.039, baseCapacity:17, specialty:'食材とくい', defaultBerryCount:1, evolutionStages:1, // マイムット→バリヤード
+      foodSlots: { lv1:[{label:'A',name:'あんみんトマト',count:2}], lv30:[{label:'A',name:'あんみんトマト',count:5},{label:'B',name:'ほっこりポテト',count:4}], lv60:[{label:'A',name:'あんみんトマト',count:7},{label:'B',name:'ほっこりポテト',count:6},{label:'C',name:'ふといながねぎ',count:4}] } },
+    // ミュウは他の8体と同じfoodSlots構造（tool.html準拠・2026/09/15の最新アップロード版で確認）。
+    // Lv1も他の8体と違い「選択制」（7候補中1つを個体が持つ。全て個数2だがエナジーは食材名により異なる。このツールではエナジー差は未計算）。
+    // Lv30・Lv60も同様に候補から1つ選択（tool.htmlの入替候補ダークライと同じ選択方式）。
+    mew:       { name:'ミュウ',     type:'エスパー', rawBaseSpeed:2900, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.200, skillProb:0.040, baseCapacity:26, specialty:'オール', defaultBerryCount:2, evolutionStages:0, foodEnergyTracked:true, // 幻・無進化
+      foodSlots: {
+        // A〜Gは全レベル帯で同じ食材（ふといながねぎ〜つやつやアボカド）に統一したラベル。HはLv60のみ追加される「おいしいシッポ」。
+        // energy値はtool.html「ミュウ」自身のfoodSlotsエントリから直接転記（2026/09/15確認）。
+        lv1: [
+          { label:'A', name:'ふといながねぎ', count:2, energy:185 },
+          { label:'B', name:'とくせんエッグ', count:2, energy:115 },
+          { label:'C', name:'げきからハーブ', count:2, energy:130 },
+          { label:'D', name:'マメミート', count:2, energy:103 },
+          { label:'E', name:'ピュアなオイル', count:2, energy:121 },
+          { label:'F', name:'ワカクサ大豆', count:2, energy:100 },
+          { label:'G', name:'つやつやアボカド', count:2, energy:162 }
+        ],
+        lv30: [
+          { label:'A', name:'ふといながねぎ', count:3, energy:185 },
+          { label:'B', name:'とくせんエッグ', count:4, energy:115 },
+          { label:'C', name:'げきからハーブ', count:4, energy:130 },
+          { label:'D', name:'マメミート', count:4, energy:103 },
+          { label:'E', name:'ピュアなオイル', count:4, energy:121 },
+          { label:'F', name:'ワカクサ大豆', count:5, energy:100 },
+          { label:'G', name:'つやつやアボカド', count:3, energy:162 }
+        ],
+        // lv60は「食材なし」（Lv60時点で第3食材が解放されない個体）を選べる。tool.htmlのミュウLv60食材選択欄に
+        // 実在する選択肢（mewFoodLv60_none）で、選ぶとこのスロット自体を計算から除外する（下のcomputeAvgFoodCount参照）
+        lv60: [
+          { label:'A', name:'ふといながねぎ', count:4, energy:185 },
+          { label:'B', name:'とくせんエッグ', count:6, energy:115 },
+          { label:'C', name:'げきからハーブ', count:5, energy:130 },
+          { label:'D', name:'マメミート', count:7, energy:103 },
+          { label:'E', name:'ピュアなオイル', count:6, energy:121 },
+          { label:'F', name:'ワカクサ大豆', count:7, energy:100 },
+          { label:'G', name:'つやつやアボカド', count:4, energy:162 },
+          { label:'H', name:'おいしいシッポ', count:2, energy:342 }
+        ],
+        lv60AllowNone: true
+      } }
+  };
+  // db.foodSlots から「所持数を消費する食材1回あたりの平均個数」を算出する（tool.html の
+  // activeFoodSlots.push(...) → avgFoodCount = totalCount/activeFoodSlots.length と同じロジック）。
+  // cfg.foodLv1 / foodLv30 / foodLv60 で個体の食材候補を指定する（未選択時は候補の先頭を採用）。
+  // ミュウのみLv1も候補が複数（7種）あるため選択制、他の8体はLv1候補が1種のみなので実質固定になる。
+  // computeAvgFoodCount / computeAvgFoodEnergy 共通：cfg（レベル・食材選択）に基づき現在有効な
+  // foodSlotsエントリ（lv1固定＋lv30/lv60の選択候補）を配列で返す。
+  function activeFoodSlots(db, cfg){
+    if (!db.foodSlots) return [];
+    var level = cfg.level || 70;
+    var slots = [db.foodSlots.lv1.find(function(s){ return s.label === cfg.foodLv1; }) || db.foodSlots.lv1[0]];
+    if (level >= 30){
+      slots.push(db.foodSlots.lv30.find(function(s){ return s.label === cfg.foodLv30; }) || db.foodSlots.lv30[0]);
+    }
+    // lv60AllowNoneを持つポケモン（ミュウ）は、未選択時のデフォルトも「食材なし」として扱う
+    var effFoodLv60 = cfg.foodLv60 || (db.foodSlots.lv60AllowNone ? 'none' : null);
+    if (level >= 60 && effFoodLv60 !== 'none'){
+      // 'none'（食材なし）が選ばれている場合はLv60スロット自体をactiveFoodSlotsに含めない（tool.htmlと同じ挙動）
+      slots.push(db.foodSlots.lv60.find(function(s){ return s.label === effFoodLv60; }) || db.foodSlots.lv60[0]);
+    }
+    return slots;
+  }
+  // eventBonus：イベント補正「食材個数」（+0/+1、対象一致時のみ呼び出し側から渡される）をアクティブな
+  // スロットそれぞれのcountに加算してから平均する（tool.htmlのfoodCount = base + eventFoodCountと同じ考え方）。
+  function computeAvgFoodCount(db, cfg, eventBonus){
+    var slots = activeFoodSlots(db, cfg);
+    if (!slots.length) return 0;
+    var totalCount = slots.reduce(function(sum,s){ return sum + s.count + (eventBonus||0); }, 0);
+    return totalCount / slots.length;
+  }
+  // 食材トリガー1回あたりの平均エナジー期待値（所持数を消費する個数countぶんの食材が一度に得られるとみなし、
+  // count×energyをアクティブなスロット間で平均する。computeAvgFoodCountと同じ「有効なスロットの中からどれか1つが
+  // 均等に選ばれる」という近似ロジックをエナジーにもそのまま適用）。foodSlotsにenergyが無い（未対応種族の）候補は0扱い。
+  function computeAvgFoodEnergy(db, cfg, eventBonus){
+    var slots = activeFoodSlots(db, cfg);
+    if (!slots.length) return 0;
+    var totalEnergy = slots.reduce(function(sum,s){ return sum + (s.count + (eventBonus||0)) * (s.energy || 0); }, 0);
+    return totalEnergy / slots.length;
+  }
+  var ENERGY_CHARGE_M = {1:880,2:1251,3:1726,4:2383,5:3290,6:4546,7:6858};
+  // エナジーチャージS（変動型・ランダム範囲の平均値）。tool.html内のENERGY_CHARGE_VARIABLE定数をそのまま移植（変更しない）。
+  // ミュウの「エナジーチャージS」はこの変動型（tool.html側でもenergyCharge_variableとして実装されており、固定型とは別枠）。
+  var ENERGY_CHARGE_S_VARIABLE = {1:500,2:711.5,3:981.5,4:1354,5:1835,6:2582.5,7:4015};
+  // ミュウツー「サイコブレイク（きのみゾーン）」のエナジーチャージ部分（きのみゾーン展開とは別に毎回固定加算される分）。
+  // raenonx.ccのゲーム内データ（Lv1〜6）をそのまま採用。ミュウツーは他のエナジーチャージ系スキルと共通の値ではなく専用テーブル。
+  var MEWTWO_ENERGY_CHARGE = {1:1408,2:2002,3:2762,4:3813,5:5264,6:7274};
+  // サイコブレイク発動1回あたりの「きのみゾーン」上昇値（%）。こちらもraenonxのゲーム内データ（Lv1〜6）。
+  // 効果量上限（+24%）はLvによらず共通なので、上限側はcommon.capのまま据え置く。
+  var MEWTWO_ZONE_STEP = {1:0.6,2:0.8,3:1.0,4:1.2,5:1.6,6:2.0};
+  // みかづきのいのり（クレセリア）：スキルLv別・チーム内エスパータイプ種族数別の効果量（自分が受け取るきのみ個数 self／チーム各員が受け取るきのみ個数 team）
+  // tool.html の MOONLIGHT_PRAYER_TABLE を数値そのまま移植（変更しない）
+  var MOONLIGHT_PRAYER_TABLE = {
+    1: { 1:{self:5,team:1}, 2:{self:7,team:1}, 3:{self:9,team:1}, 4:{self:12,team:1}, 5:{self:14,team:2} },
+    2: { 1:{self:9,team:1}, 2:{self:12,team:1}, 3:{self:15,team:1}, 4:{self:20,team:2}, 5:{self:19,team:3} },
+    3: { 1:{self:13,team:1}, 2:{self:17,team:1}, 3:{self:18,team:2}, 4:{self:20,team:3}, 5:{self:24,team:4} },
+    4: { 1:{self:17,team:1}, 2:{self:19,team:2}, 3:{self:25,team:2}, 4:{self:28,team:3}, 5:{self:29,team:5} },
+    5: { 1:{self:21,team:1}, 2:{self:24,team:2}, 3:{self:27,team:3}, 4:{self:28,team:5}, 5:{self:30,team:7} },
+    6: { 1:{self:25,team:1}, 2:{self:29,team:2}, 3:{self:30,team:4}, 4:{self:31,team:6}, 5:{self:32,team:9} }
+  };
+  // 標準版「きのみバースト」：スキルLvのみで決まる固定テーブル（種族数には依存しない）。
+  // みかづきのいのり（クレセリア専用・エスパー種族数依存）／りゅうせいぐん（ラティオス専用・ドラゴン種族数依存）とは別の、
+  // キモリ系統・ヒコザル系統・ワシボン系統・ミミッキュ等が持つ「通常のきのみバースト」の値。game8・ポケらくの2ソースで一致（2026/09/15確認）。
+  // ミュウが「ひらめきのたね」で確定できる「きのみバースト」も、種族固有の変種名ではなく標準名で表示されているため、この固定テーブルを採用する。
+  var BERRY_BURST_TABLE = {
+    1: { self:11, team:1 },
+    2: { self:14, team:2 },
+    3: { self:21, team:2 },
+    4: { self:24, team:3 },
+    5: { self:27, team:4 },
+    6: { self:30, team:5 }
+  };
+  // おてつだいサポートS：スキルLv別の「即完了させるおてつだい回数」。tool.html内のHELP_SUPPORT_S_COUNTS定数と完全一致、
+  // game8でも同値を確認（tebasaki-summitは4〜9回という別の数値を出していたが、tool.html・game8の2ソース一致を採用・不採用、2026/09/15）。
+  var HELP_SUPPORT_S_COUNTS = { 1:6, 2:7, 3:8, 4:9, 5:10, 6:11, 7:12 };
+  var NATURE_SPEED = { up:0.9, neutral:1.0, down:1.075 };
+  var NATURE_PROB  = { up:1.2, neutral:1.0, down:0.8 };
+  // フィールド補正の比較対象はエスパーきのみ（マゴのみ）のみ。ヤチェのみ(ボーマンダ)は対象外＝常に'other'扱い
+  var BERRY_KEY = { 'マゴのみ':'mago' };
+
+  // 全きのみの基礎エナジー値・対応タイプ（tool.html の ALL_BERRIES / BERRY_TYPES をそのまま移植）。
+  // 「その他のポケモン」枠でタイプを指定した際に、正確な好物きのみ・基礎エナジーを引くために使う。
+  var ALL_BERRIES = {
+    'キーのみ':28, 'ヒメリのみ':27, 'オレンのみ':31, 'ウブのみ':25, 'ドリのみ':30, 'チーゴのみ':32,
+    'クラボのみ':27, 'カゴのみ':32, 'フィラのみ':29, 'シーヤのみ':24, 'マゴのみ':26, 'ラムのみ':24,
+    'オボンのみ':30, 'ブリーのみ':26, 'ヤチェのみ':35, 'ウイのみ':31, 'ベリブのみ':33, 'モモンのみ':26
+  };
+  var BERRY_TYPES = {
+    'キーのみ':'ノーマル', 'ヒメリのみ':'ほのお', 'オレンのみ':'みず', 'ウブのみ':'でんき', 'ドリのみ':'くさ', 'チーゴのみ':'こおり',
+    'クラボのみ':'かくとう', 'カゴのみ':'どく', 'フィラのみ':'じめん', 'シーヤのみ':'ひこう', 'マゴのみ':'エスパー', 'ラムのみ':'むし',
+    'オボンのみ':'いわ', 'ブリーのみ':'ゴースト', 'ヤチェのみ':'ドラゴン', 'ウイのみ':'あく', 'ベリブのみ':'はがね', 'モモンのみ':'フェアリー'
+  };
+  // タイプ→きのみ名の逆引き（公式順で並べておく。UIのセレクト肢順にも使う）
+  var TYPE_ORDER = ['ノーマル','ほのお','みず','でんき','くさ','こおり','かくとう','どく','じめん','ひこう','エスパー','むし','いわ','ゴースト','ドラゴン','あく','はがね','フェアリー'];
+  var TYPE_TO_BERRY = {};
+  Object.keys(BERRY_TYPES).forEach(function(berry){ TYPE_TO_BERRY[BERRY_TYPES[berry]] = berry; });
+
+  // skill kind per pokemon (support枠・切替先・ミュウツー共通): 'energyChargeM' | 'zero' | 'manual' | 'mimicAuto'
+  // サポート4枠のうちバリヤード以外（サーナイト・エーフィ・ネイティオ・ムシャーナ）は、合意により
+  // 自身のスキルエナジーを一律度外視(0)にする方針(2026/09/15)。エーフィのエナジーチャージM・ネイティオの食材ゲットS・
+  // ムシャーナのゆめのかけらゲットSも、本来はエナジーを生むスキルだが、このツールの目的（ミュウツーのゾーンが
+  // 与える影響の比較）にとって計算外として扱う。バリヤード(ものまね)は専用の期待値計算(computeMrmimeMimicEnergy参照)で
+  // 自動算出するため mimicAuto のまま個別に扱う。
+  // ミュウは「メインスキル」自体を選択式にする（下のMEW_SKILL_OPTIONS・resolveSkillKind参照）ため、ここでの'mew'の値はフォールバック用の暫定値
+  var SKILL_KIND = { mewtwo:'zero', gardevoir:'zero', espeon:'zero', xatu:'zero', cresselia:'manual', musharna:'zero', mrmime:'mimicAuto', mew:'manual' };
+  // skillKind==='zero'の際、各ポケモンごとに表示する「0である理由」ラベル（support枠のみで使用。省略時は汎用文言）
+  var ZERO_SKILL_LABEL = {
+    gardevoir: '0（げんきオールSは直接エナジーなし）',
+    espeon:    '0（エナジーチャージMを合意により度外視・ゾーン比較の対象外として扱う方針）',
+    xatu:      '0（食材ゲットSを合意により度外視・ゾーン比較の対象外として扱う方針）',
+    musharna:  '0（ゆめのかけらゲットSを合意により度外視・ゾーン比較の対象外として扱う方針）'
+  };
+  // サポートメンバーの選択肢。ミュウツー・切替先(クレセリア等)は専用セクションがあるのでここには含めない
+  var SUPPORT_POOL = ['gardevoir','espeon','xatu','musharna','mrmime'];
+  // 切替先の選択肢
+  var TARGET_POOL = ['cresselia','mew'];
+
+  // ミュウの「ひらめきのたね」で確定できるメインスキル一覧（公式サイト・game8で確認、2026/09/15時点で11種＋未確定のゆびをふる）。
+  // 自動計算できるのは エナジーチャージM(既存テーブル)／エナジーチャージS(ENERGY_CHARGE_S_VARIABLE、tool.html準拠)／きのみバースト(BERRY_BURST_TABLE)／
+  // おてつだいサポートS(HELP_SUPPORT_S_COUNTS。自分＋サポート4枠＝チーム5体から均等ランダム選出という公式仕様をもとに、各メンバーの好物きのみエナジーで期待値計算。
+  // 食材分はこのツールが食材価値をモデル化していないため計算に含めない、という合意で簡略化)。
+  // それ以外（ゆびをふる・げんき系・食材系・料理系・ゆめのかけら系）はそもそも直接「エナジー」を生まない（ゆびをふるは未確定枠のため一律換算できない）ので、
+  // tool.html の「入替候補」機能と同じ方式（エナジーチャージM倍率／直接入力／度外視の3択）で換算する。
+  var MEW_SKILL_OPTIONS = [
+    { key:'metronome',          label:'ゆびをふる（未確定）' },
+    { key:'energyCharge_variable', label:'エナジーチャージS' },
+    { key:'energyCharge_M',     label:'エナジーチャージM' },
+    { key:'yumeKakeraGetS',     label:'ゆめのかけらゲットS' },
+    { key:'foodGet_S',          label:'食材ゲットS' },
+    { key:'energyYell_S',       label:'げんきエールS' },
+    { key:'energyRecover_S',    label:'げんきチャージS' },
+    { key:'energyYell_All',     label:'げんきオールS' },
+    { key:'cookingChance_S',    label:'料理チャンスS' },
+    { key:'cookingPower_S',     label:'料理パワーアップS' },
+    { key:'helpSupport_S',      label:'おてつだいサポートS' },
+    { key:'berryBurst',         label:'きのみバースト' }
+  ];
+  // エナジーチャージM倍率／直接入力／度外視の3択で換算するスキル（直接「エナジー」を生まないもの全部＋未確定のゆびをふる。おてつだいサポートSは専用計算に移行済み）
+  var MEW_3MODE_SKILLS = ['metronome','yumeKakeraGetS','foodGet_S','energyYell_S','energyYell_All','cookingChance_S','cookingPower_S','energyRecover_S'];
+  // ミュウのメインスキル別スキル確率（2026/09時点の有志調査による予測値。調査元：raenonx氏。wikiwiki.jp/poke_sleep/ミュウ に掲載されたraenonx調査班のデータを引用）
+  // 公式未確定の推定値である点に注意。ページの「回数/日」÷「確率」が全行でおよそ45.75〜45.94に揃うことを確認し、表の対応関係を検証済み（2026/09/15）。
+  var MEW_SKILL_PROB = {
+    metronome:              0.0400, // ゆびをふる
+    energyCharge_variable:  0.0640, // エナジーチャージS（ランダム）
+    energyCharge_M:         0.0400, // エナジーチャージM
+    yumeKakeraGetS:         0.0400, // ゆめのかけらゲットS（ランダム）
+    foodGet_S:              0.0400, // 食材ゲットS
+    energyYell_S:           0.0439, // げんきエールS
+    energyRecover_S:        0.0640, // げんきチャージS
+    energyYell_All:         0.0337, // げんきオールS
+    cookingChance_S:        0.0400, // 料理チャンスS
+    cookingPower_S:         0.0400, // 料理パワーアップS
+    helpSupport_S:          0.0400, // おてつだいサポートS
+    berryBurst:             0.0284  // きのみバースト
+  };
+  // 3択「倍率」モードのデフォルト倍率（tool.html準拠。げんきエール系のみ0.5、それ以外は1.0）
+  var MEW_3MODE_DEFAULT_MULTIPLIER = { energyYell_S:0.5, energyYell_All:0.5 };
+  // 3択スキルの「倍率」モードでの実エナジーを計算
+  function computeMew3ModeEnergy(cfg){
+    var mode = cfg.mewMode || 'multiplier';
+    if (mode === 'ignore') return 0;
+    if (mode === 'direct') return cfg.energyPerSkill || 0;
+    var lvl = cfg.skillLevel || 7;
+    var base = ENERGY_CHARGE_M[lvl] || ENERGY_CHARGE_M[7];
+    var mult = (cfg.mewModeMultiplier != null && cfg.mewModeMultiplier !== '') ? cfg.mewModeMultiplier : (MEW_3MODE_DEFAULT_MULTIPLIER[cfg.mewMainSkill] || 1.0);
+    return base * mult;
+  }
+  // ミュウの選択中メインスキルから、実際の計算方式('energyChargeM'|'energyChargeS'|'manual')を決める
+  function resolveSkillKind(key, cfg){
+    if (key === 'mew'){
+      var ms = (cfg && cfg.mewMainSkill) || 'metronome';
+      if (ms === 'energyCharge_M') return 'energyChargeM';
+      if (ms === 'energyCharge_variable') return 'energyChargeS';
+      return 'manual'; // ゆびをふる・きのみバースト（自動計算後にeffCfg.energyPerSkillへ反映）・3択スキル（同上）はすべて手入力扱いの計算方式を流用
+    }
+    return SKILL_KIND[key];
+  }
+
+  function defaultMemberCfg(extra){
+    return Object.assign({
+      level:70, spd:'neutral', skl:'neutral', food:'neutral',
+      otebonus:false, speedM:false, speedS:false, skillM:false, skillS:false, foodM:false, foodS:false,
+      berryS:false, skillLevel:7, energyPerSkill:0,
+      moonlightSkillLevel:6
+    }, extra || {});
+  }
+  // ミュウツービルド専用のデフォルトcfg。support/switchTargetsのdefaultMemberCfg()とは形が異なる
+  // （ミュウツービルドはcfgをネストせずフラットに持ち、energyPerSkill/moonlightSkillLevelは使わない代わりに
+  // zone.skillLevelを持つ）ため、意図的に別関数として定義し、defaultState.mewtwoBuildsとaddMewtwoBtnハンドラの
+  // 両方がこれ1箇所だけを参照するようにして、2箇所の定義がズレるのを防ぐ。extra省略時（=id/nameを含まない）の
+  // 戻り値は、旧保存データの欠損フィールドを補うbackfillDefaults()のテンプレートとしても使う。
+  function defaultMewtwoBuildCfg(extra){
+    return Object.assign({
+      level:70, spd:'neutral', skl:'neutral', food:'neutral',
+      otebonus:false, speedM:false, speedS:false, skillM:false, skillS:false, foodM:false, foodS:false,
+      berryS:false,
+      zone:{ skillLevel:6 }
+    }, extra || {});
+  }
+  // 保存データに欠けているフィールドをテンプレート（defaultMewtwoBuildCfg()やdefaultMemberCfg()の戻り値）から
+  // 補う。値のあるフィールドは上書きしない。ネストしたプレーンオブジェクト（zoneなど）は再帰的に補完する。
+  function backfillDefaults(obj, template){
+    if (!obj || !template) return obj;
+    Object.keys(template).forEach(function(key){
+      var defVal = template[key];
+      var isPlainObj = defVal && typeof defVal==='object' && !Array.isArray(defVal);
+      if (obj[key] === undefined){
+        obj[key] = isPlainObj ? JSON.parse(JSON.stringify(defVal)) : defVal;
+      } else if (isPlainObj && obj[key] && typeof obj[key]==='object' && !Array.isArray(obj[key])){
+        backfillDefaults(obj[key], defVal);
+      }
+    });
+    return obj;
+  }
+
+  var defaultState = {
+    field: {
+      select: 'wakakusa',
+      campTicket: false,
+      wakakusa: { mago:true },
+      wakakusaEx: { main:'mago', sub1:'', sub2:'', exOther:'berry' },
+      cyanEx: { main:'', sub1:'', sub2:'', exOther:'none' }
+    },
+    support: [
+      { id:'sp1', key:'gardevoir', cfg: defaultMemberCfg({ otebonus:true, speedM:true, skillM:true, skl:'up' }) },
+      { id:'sp2', key:'espeon',    cfg: defaultMemberCfg({ otebonus:true, speedM:true, spd:'up', berryS:true, skillLevel:7 }) },
+      { id:'sp3', key:'xatu',      cfg: defaultMemberCfg({ otebonus:true, speedM:true, spd:'up', berryS:true, energyPerSkill:0 }) },
+      { id:'sp4', key:'other',     cfg: { otebonus:true, type:'', level:70 } }
+    ],
+    switchTargets: [
+      { id:'t1', name:'クレセリア', key:'cresselia', cfg: defaultMemberCfg({ speedM:true, berryS:true, energyPerSkill:0 }) },
+      { id:'t2', name:'ミュウ',     key:'mew',       cfg: defaultMemberCfg({ mewMainSkill:'metronome', mewMode:'direct', energyPerSkill:ENERGY_CHARGE_M[7], foodLv1:'B', foodLv30:'C', foodLv60:'none' }) }
+    ],
+    mewtwoBuilds: [
+      // きのみ型＝きのみS＋スピM（スキル確率側の補正はなし）、スキル型＝スキ確M＋スピM。成長率(%/24h)はもう手入力ではなく、
+      // このスキル関連の性格・サブスキル設定からスキル発動期待値を計算し、ゾーン1回あたり上昇値(MEWTWO_ZONE_STEP)を掛けて自動算出する
+      // （zone.Iはv60以前の手入力ゾーン期待値の名残。zoneIAutoによる自動計算に置き換え済みで現在は未使用のため保持しない）
+      defaultMewtwoBuildCfg({ id:'b1', name:'きのみ型ミュウツー', speedM:true, berryS:true }),
+      defaultMewtwoBuildCfg({ id:'b2', name:'スキル型ミュウツー', speedM:true, skillM:true })
+    ],
+    common: { cap:24, window:6720, sleep:{ enabled:false, start:'23:00', end:'07:00' }, eventCapacityBonus:0,
+      eventCorrection: { typeRestriction:false, types:[], specialtyRestriction:false, specialties:[],
+        skillMode:'1.0', skillCustom:1.0, berryCount:0, foodCount:0, berryBurstMode:'1.0', berryBurstCustom:1.0 } },
+    start: { dow:0, time:'04:00' },
+    end: { dow:4, time:'20:00' }
+  };
+
+  // 起点(dow+time)と終了(dow+time)から評価期間（分）を自動計算する。終了が起点と同じかそれより前なら翌週扱い（+7日）
+  function dowTimeToMin(dow, time){
+    var d = parseInt(dow,10)||0;
+    var parts = (time||'04:00').split(':');
+    var h = parseInt(parts[0],10)||0, m = parseInt(parts[1],10)||0;
+    return d*1440 + h*60 + m;
+  }
+  function computeWindowFromEndpoints(startObj, endObj){
+    var s = dowTimeToMin(startObj.dow, startObj.time);
+    var e = dowTimeToMin(endObj.dow, endObj.time);
+    var diff = e - s;
+    if (diff <= 0) diff += 7*1440;
+    return diff;
+  }
+  // 就寝〜起床の時刻（曜日は問わない・時刻のみ）から睡眠時間（分）を計算する。起床が就寝と同じかそれより前なら日をまたぐ扱い
+  function timeOnlyToMin(time){
+    var parts = (time||'00:00').split(':');
+    return (parseInt(parts[0],10)||0)*60 + (parseInt(parts[1],10)||0);
+  }
+  function computeSleepMinutes(){
+    var sleep = state.common && state.common.sleep;
+    if (!sleep || !sleep.enabled) return 0;
+    var s = timeOnlyToMin(sleep.start), e = timeOnlyToMin(sleep.end);
+    var diff = e - s;
+    if (diff <= 0) diff += 1440;
+    return Math.min(diff, 1440);
+  }
+
+  var state = loadState();
+  // 保存データのフィールド欠損に対するバックフィル：mewtwoBuilds（フラット構造）／support・switchTargetsのcfg
+  // （'other'枠は専用の最小構造を使うため対象外）を、それぞれの現行デフォルト形（defaultMewtwoBuildCfg()／
+  // defaultMemberCfg()）と突き合わせ、欠けているフィールドだけを補う。旧バージョンの保存データや、将来フィールドが
+  // 追加された場合でも、各計算関数側の `cfg.foo || 0` 頼みにせず、ここで一括して構造を揃えておく。
+  if (Array.isArray(state.mewtwoBuilds)){
+    state.mewtwoBuilds.forEach(function(b){ backfillDefaults(b, defaultMewtwoBuildCfg()); });
+  }
+  [state.support, state.switchTargets].forEach(function(list){
+    if (!Array.isArray(list)) return;
+    list.forEach(function(entry){
+      if (entry && entry.cfg && entry.key !== 'other'){ backfillDefaults(entry.cfg, defaultMemberCfg()); }
+    });
+  });
+  state.common.cap = 24; // ゾーン上限(%)は24%固定（raenonxのゲーム内データより。編集不可）。旧保存データに別の値が入っていても常に上書きする
+  if (!state.common.sleep){
+    // 旧保存データ（睡眠設定を持たない）からの移行：デフォルトでオフのまま追加する
+    state.common.sleep = { enabled:false, start:'23:00', end:'07:00' };
+  }
+  if (typeof state.common.eventCapacityBonus === 'undefined'){
+    // 旧保存データ（イベント最大所持数ボーナス設定を持たない）からの移行：デフォルト「通常」（0）で追加する
+    state.common.eventCapacityBonus = 0;
+  }
+  if (!state.common.eventCorrection){
+    // 旧保存データ（イベント補正の詳細設定を持たない）からの移行：全て「通常」扱いで追加する
+    state.common.eventCorrection = { typeRestriction:false, types:[], specialtyRestriction:false, specialties:[],
+      skillMode:'1.0', skillCustom:1.0, berryCount:0, foodCount:0, berryBurstMode:'1.0', berryBurstCustom:1.0 };
+  } else {
+    backfillDefaults(state.common.eventCorrection, { typeRestriction:false, types:[], specialtyRestriction:false, specialties:[],
+      skillMode:'1.0', skillCustom:1.0, berryCount:0, foodCount:0, berryBurstMode:'1.0', berryBurstCustom:1.0 });
+  }
+  if (!state.end || typeof state.end.dow === 'undefined' || typeof state.end.time === 'undefined'){
+    // 旧保存データ（終了dow/timeを持たない）からの移行：既存のstart+windowから終了時点を逆算して保持する
+    var migratedStart = state.start || defaultState.start;
+    var totalEndMin = dowTimeToMin(migratedStart.dow, migratedStart.time) + (state.common.window || defaultState.common.window);
+    var endDowCalc = Math.floor(totalEndMin/1440) % 7;
+    var endMinCalc = ((totalEndMin % 1440)+1440)%1440;
+    var endHour = Math.floor(endMinCalc/60), endMin = endMinCalc%60;
+    state.end = { dow: String(endDowCalc), time: (endHour<10?'0':'')+endHour+':'+(endMin<10?'0':'')+endMin };
+  }
+  state.common.window = computeWindowFromEndpoints(state.start, state.end); // 常に起点・終了から再計算（手入力欄は廃止済み）
+  var buildSeq = state.mewtwoBuilds.length;
+
+  function loadState(){
+    try{
+      var raw = localStorage.getItem(STORE_KEY);
+      if(!raw) return JSON.parse(JSON.stringify(defaultState));
+      var parsed = JSON.parse(raw);
+      if(!parsed || !Array.isArray(parsed.mewtwoBuilds) || !parsed.mewtwoBuilds.length || !Array.isArray(parsed.support) || parsed.support.length !== 4 || !Array.isArray(parsed.switchTargets) || !parsed.switchTargets.length) return JSON.parse(JSON.stringify(defaultState));
+      return parsed;
+    }catch(e){ return JSON.parse(JSON.stringify(defaultState)); }
+  }
+  function saveState(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){} }
+
+  // ---------- field effects (ported from tool.html field logic) ----------
+  // 4フィールド限定: ワカクサ本島 / ラピスラズリ湖畔 / ワカクサ本島EX / シアンの砂浜EX
+  // このツールで使う6体は全員マゴのみ or ヤチェのみのため、好物判定はその2種のみで足りる
+  function fieldEffectsFor(db, field){
+    var sel = field.select;
+    var res = { speedMult:1.0, isFavorite:false, skillLevelBonus:0, exOther:'none', mainMatch:false };
+    if (sel === 'wakakusa'){
+      res.isFavorite = (db.berryName==='マゴのみ' && field.wakakusa.mago);
+      return res;
+    }
+    if (sel === 'lapis'){
+      // ラピスラズリ湖畔の好物きのみは固定: ドリのみ・マゴのみ・クラボのみ
+      res.isFavorite = (db.berryName === 'マゴのみ');
+      return res;
+    }
+    var isWkEx = (sel === 'wakakusa_ex');
+    var cfg = isWkEx ? field.wakakusaEx : field.cyanEx;
+    var speedMap = isWkEx
+      ? { main:0.9, sub:1.0, mismatch:1.15, none:1.0 }   // メイン一致10%短縮/サブ一致補正なし/不一致15%増加
+      : { main:0.8, sub:1.0, mismatch:1.35, none:1.0 };  // メイン一致20%短縮/サブ一致補正なし/不一致35%増加
+    var key = BERRY_KEY[db.berryName] || 'other';
+    var anySelected = !!(cfg.main || cfg.sub1 || cfg.sub2);
+    if (cfg.main && cfg.main === key){
+      res.speedMult = speedMap.main;
+      res.isFavorite = true;
+      res.skillLevelBonus = 1;
+      res.mainMatch = true;
+    } else if ((cfg.sub1 && cfg.sub1 === key) || (cfg.sub2 && cfg.sub2 === key)){
+      res.speedMult = speedMap.sub;
+      res.isFavorite = true;
+    } else if (anySelected){
+      res.speedMult = speedMap.mismatch;
+      res.isFavorite = false;
+    } else {
+      res.speedMult = speedMap.none;
+      res.isFavorite = false;
+    }
+    res.exOther = cfg.exOther;
+    return res;
+  }
+
+  // ---------- イベント補正（tool.htmlの「イベント補正」機能を移植。料理の最終エナジー倍率は
+  // このツールに料理チャンスの計算がないため対象外。食材ゲットSの効果量・メインスキルレベル+Nは、
+  // このツールではミュウの該当スキルが専用の実効果式を持たない（度外視／倍率／直接入力の簡易換算のみ）ため、
+  // 意味的に対応が取りづらく今回は対象外とした） ----------
+  // タイプ・とくいなものの一致判定（tool.html の checkEventTypeMatch と同じAND条件）。
+  // 両方OFFなら常に適用。ONの項目は対象未選択なら不一致（誰にも適用されない）。
+  function eventCorrectionMatchesEntity(type, specialty){
+    var ec = state.common.eventCorrection;
+    if (!ec.typeRestriction && !ec.specialtyRestriction) return true;
+    var typeMatch = true, specialtyMatch = true;
+    if (ec.typeRestriction){
+      typeMatch = ec.types.length>0 && type != null && ec.types.indexOf(type) !== -1;
+    }
+    if (ec.specialtyRestriction){
+      specialtyMatch = ec.specialties.length>0 && specialty != null && (specialty==='オール' || ec.specialties.indexOf(specialty) !== -1);
+    }
+    return typeMatch && specialtyMatch;
+  }
+  function eventCorrectionMatchesDb(db){
+    if (!db) return false;
+    return eventCorrectionMatchesEntity(db.type, db.specialty);
+  }
+  function eventSkillMultiplier(){
+    var ec = state.common.eventCorrection;
+    if (ec.skillMode === 'custom'){
+      var c = parseFloat(ec.skillCustom);
+      return isNaN(c) ? 1.0 : c;
+    }
+    var v = parseFloat(ec.skillMode);
+    return isNaN(v) ? 1.0 : v;
+  }
+  function eventBerryBurstMultiplier(){
+    var ec = state.common.eventCorrection;
+    if (ec.berryBurstMode === 'custom'){
+      var c = parseFloat(ec.berryBurstCustom);
+      return isNaN(c) ? 1.0 : c;
+    }
+    var v = parseFloat(ec.berryBurstMode);
+    return isNaN(v) ? 1.0 : v;
+  }
+
+  // ---------- core ported formulas ----------
+  // trace（省略可）：検算用の計算過程ログ配列。渡された場合のみ、既に計算済みの実変数を使って
+  // 人間可読な計算式の行を末尾に追加する（trace未指定時は従来と完全に同じ挙動・戻り値）。
+  function calcFinalSpeed(db, cfg, field, teamOtebonus, trace){
+    var afterLevel = db.rawBaseSpeed * (1 - 0.002*(cfg.level-1));
+    var speedAtLevel = afterLevel * 0.45;
+    // おてつだいボーナスはチーム全体（5枠）で共有される効果。誰か1人が持っていれば全員+5%
+    var subBonusRaw = (cfg.speedM?0.14:0) + (cfg.speedS?0.07:0) + (teamOtebonus||0)*0.05;
+    var subBonus = subBonusRaw > 0.35 ? 0.35 : subBonusRaw;
+    var afterSub = speedAtLevel * (1 - subBonus);
+    var afterNature = afterSub * NATURE_SPEED[cfg.spd];
+    var fx = fieldEffectsFor(db, field);
+    var afterEx = afterNature * fx.speedMult;
+    var final = field.campTicket ? afterEx/1.2 : afterEx;
+    if (trace){
+      trace.push('[おてつだいスピード] '+db.name);
+      trace.push('  素の速さ = '+db.rawBaseSpeed+' × (1-0.002×('+cfg.level+'-1)) × 0.45 = '+fmtN(speedAtLevel,3));
+      trace.push('  サブスキル合計% = おてスピM('+(cfg.speedM?'14%':'0%')+') + おてスピS('+(cfg.speedS?'7%':'0%')+') + チームおてぼ'+(teamOtebonus||0)+'枚×5% = '+fmtN(subBonusRaw*100,2)+'%'+(subBonusRaw>0.35?'→上限35%でキャップ':''));
+      trace.push('  ×(1-'+fmtN(subBonus*100,2)+'%) × 性格['+cfg.spd+']('+NATURE_SPEED[cfg.spd]+') = '+fmtN(afterNature,3));
+      trace.push('  ×フィールド速度倍率('+fmtN(fx.speedMult,3)+') = '+fmtN(afterEx,3));
+      trace.push('  '+(field.campTicket?'÷1.2（CTあり）':'（CTなし）')+' = '+fmtN(final,4)+' 秒/回');
+    }
+    return final; // seconds/help
+  }
+  function calcSkillProb(db, cfg, field, trace){
+    var base = (db === POKEMON_DB.mew) ? (MEW_SKILL_PROB[cfg.mewMainSkill] != null ? MEW_SKILL_PROB[cfg.mewMainSkill] : db.skillProb) : db.skillProb;
+    var p = base;
+    if (cfg.skillM) p *= 1.36;
+    if (cfg.skillS) p *= 1.18;
+    var afterSub = p;
+    p *= NATURE_PROB[cfg.skl];
+    var afterNature = p;
+    var fx = fieldEffectsFor(db, field);
+    if (fx.exOther === 'skill') p *= 1.25;
+    var afterEx = p;
+    var eventApplies = eventCorrectionMatchesDb(db);
+    if (eventApplies) p *= eventSkillMultiplier();
+    if (trace){
+      trace.push('[スキル確率] '+db.name);
+      trace.push('  基本確率 '+fmtN(base*100,3)+'%'+(cfg.skillM?' ×1.36(スキ確M)':'')+(cfg.skillS?' ×1.18(スキ確S)':'')+' = '+fmtN(afterSub*100,3)+'%');
+      trace.push('  ×性格['+cfg.skl+']('+NATURE_PROB[cfg.skl]+') = '+fmtN(afterNature*100,3)+'%');
+      trace.push('  '+(fx.exOther==='skill'?'×1.25（EXフィールド効果=スキル）':'（EXフィールド効果対象外）')+' = '+fmtN(afterEx*100,3)+'%');
+      trace.push('  '+(eventApplies?'×'+eventSkillMultiplier()+'（イベント補正・対象一致）':'（イベント補正：対象外）')+' = '+fmtN(p*100,3)+'%');
+    }
+    return p;
+  }
+  function calcFoodProb(db, cfg, field, trace){
+    var base = db.foodProb;
+    var p = base;
+    if (cfg.foodM) p *= 1.36;
+    if (cfg.foodS) p *= 1.18;
+    var afterSub = p;
+    p *= NATURE_PROB[cfg.food];
+    if (trace){
+      trace.push('[食材確率] '+db.name);
+      trace.push('  基本確率 '+fmtN(base*100,3)+'%'+(cfg.foodM?' ×1.36(食材M)':'')+(cfg.foodS?' ×1.18(食材S)':'')+' = '+fmtN(afterSub*100,3)+'%');
+      trace.push('  ×性格['+cfg.food+']('+NATURE_PROB[cfg.food]+') = '+fmtN(p*100,3)+'%');
+    }
+    return p;
+  }
+  function calcBerryEnergyPerBerry(baseEnergy, level, trace){
+    var additive = baseEnergy + (level-1);
+    var multiplicative = baseEnergy * Math.pow(1.025, level-1);
+    var result = Math.round(Math.max(additive, multiplicative));
+    if (trace){
+      trace.push('[きのみエナジー/個] 基礎値'+baseEnergy+'・Lv'+level);
+      trace.push('  加算式 = '+baseEnergy+'+('+level+'-1) = '+fmtN(additive,3)+'　／　乗算式 = '+baseEnergy+'×1.025^('+level+'-1) = '+fmtN(multiplicative,3));
+      trace.push('  round(max(加算式,乗算式)) = '+result);
+    }
+    return result;
+  }
+  function calcEnergyPerSkill(kind, db, cfg, trace){
+    var result;
+    if (kind === 'zero') result = 0;
+    else if (kind === 'energyChargeM') result = ENERGY_CHARGE_M[cfg.skillLevel] || ENERGY_CHARGE_M[7];
+    else if (kind === 'energyChargeS') result = ENERGY_CHARGE_S_VARIABLE[cfg.skillLevel] || ENERGY_CHARGE_S_VARIABLE[7]; // manual以下と分岐
+    else result = cfg.energyPerSkill || 0; // manual
+    if (trace){
+      trace.push('[スキル1回あたりエナジー] 方式='+kind+(kind==='energyChargeM'||kind==='energyChargeS' ? '・スキルLv'+cfg.skillLevel : '（手入力/自動計算値をそのまま使用）')+' → '+fmtN(result,2));
+    }
+    return result;
+  }
+  function calcMemberDaily(dbKey, cfg, field, skillKind, teamOtebonus, trace){
+    var db = POKEMON_DB[dbKey];
+    var fx = fieldEffectsFor(db, field);
+    var finalSpeed = calcFinalSpeed(db, cfg, field, teamOtebonus, trace);
+    var helpCountPerDay = 86400/finalSpeed;
+    if (trace) trace.push('  1日のおてつだい回数 = 86400/'+fmtN(finalSpeed,4)+' = '+fmtN(helpCountPerDay,3)+'回');
+    var skillProb = calcSkillProb(db, cfg, field, trace);
+    var foodProb = calcFoodProb(db, cfg, field, trace);
+    var berryProb = 1 - foodProb;
+    if (trace) trace.push('  きのみ確率 = 1 - 食材確率('+fmtN(foodProb*100,3)+'%) = '+fmtN(berryProb*100,3)+'%');
+    var berryEnergyPerBerry = calcBerryEnergyPerBerry(db.berryBaseEnergy, cfg.level, trace);
+    var eventMatch = eventCorrectionMatchesDb(db);
+    var eventBerryCountBonus = eventMatch ? (parseInt(state.common.eventCorrection.berryCount,10)||0) : 0;
+    var eventFoodCountBonus = eventMatch ? (parseInt(state.common.eventCorrection.foodCount,10)||0) : 0;
+    var berryPerCount = (db.defaultBerryCount||1) + (cfg.berryS?1:0) + eventBerryCountBonus;
+    if (trace) trace.push('  きのみ基本個数 = '+(db.defaultBerryCount||1)+(cfg.berryS?' +1(きのみS)':'')+(eventBerryCountBonus?' +'+eventBerryCountBonus+'(イベント補正)':'')+' = '+berryPerCount+'個');
+    var isFavorite = fx.isFavorite;
+    var favoriteMult = isFavorite ? (fx.exOther==='berry' ? 2.4 : 2) : 1;
+    if (trace) trace.push('  好物倍率 = '+(isFavorite ? (fx.exOther==='berry'?'2.4（EX好物一致）':'2（好物一致）') : '1（好物不一致）'));
+    var energyPerSkill;
+    if (skillKind === 'energyChargeM'){
+      // EXフィールドでメインきのみ一致 → メインスキルLv+1（上限Lv7）
+      var effLevel = Math.min((cfg.skillLevel||7) + (fx.skillLevelBonus||0), 7);
+      energyPerSkill = ENERGY_CHARGE_M[effLevel] || ENERGY_CHARGE_M[7];
+      if (trace) trace.push('  [スキル1回あたりエナジー] EXフィールド効果でスキルLv'+(cfg.skillLevel||7)+'+'+(fx.skillLevelBonus||0)+'='+effLevel+'（上限7） → エナジーチャージM = '+fmtN(energyPerSkill,2));
+    } else {
+      energyPerSkill = calcEnergyPerSkill(skillKind, db, cfg, trace);
+    }
+
+    // きのみ得意（ネイティオ・ボーマンダ・ムシャーナ）は、実プレイの運用慣習として「終日いつの間に育成」
+    // （食材確率0%・スキル確率0%・きのみ確率100%）扱いとする（本人確認済み・2026/09/15）。
+    // 睡眠設定のON/OFFに関わらず常時この扱いになり、所持数キャップも一切適用しない。
+    if (db.idleAllDay){
+      var berryCountAllDay = helpCountPerDay; // 100%きのみ
+      var berryEnergyAllDay = berryCountAllDay * berryEnergyPerBerry * berryPerCount * favoriteMult;
+      if (trace){
+        trace.push('  ['+db.name+'はいつの間に育成扱い：食材確率0%・スキル確率0%・きのみ確率100%]');
+        trace.push('  1日のきのみ回数 = 1日のおてつだい回数 = '+fmtN(berryCountAllDay,3)+'回');
+        trace.push('  1日のきのみエナジー = '+fmtN(berryCountAllDay,3)+'×'+berryEnergyPerBerry+'×'+berryPerCount+'×'+favoriteMult+' = '+fmtN(berryEnergyAllDay,2));
+        trace.push('  合計エナジー/日 = '+fmtN(berryEnergyAllDay,2)+'（1分あたり '+fmtN(berryEnergyAllDay/1440,3)+'）');
+      }
+      return { db, finalSpeed, helpCountPerDay, skillProb:0, foodProb:0, berryEnergyPerBerry, berryPerCount, favoriteMult,
+        berryCount: berryCountAllDay, berryEnergyDay: berryEnergyAllDay, skillCountDay:0, energyPerSkill, skillEnergyDay:0, foodEnergyDay:0,
+        totalDay: berryEnergyAllDay, perMin: berryEnergyAllDay/1440, zonePerMin: berryEnergyAllDay/1440, flatPerMin:0, idleAllDay:true,
+        capacityFillHelps:null, capacityFillMinutes:null,
+        sleep: { enabled:false, sleepMin:0, capacity:null, itemsProducedSleep:0, itemsCollectedSleep:0, itemsWastedSleep:0, energyWastedSleep:0, helpsPhase1:0, helpsPhase2:0 } };
+    }
+
+    // 就寝〜起床の間は2段階で計算する：
+    // (1) バッグ（所持数）が満杯になるまでは、覚醒時と同じ確率で通常のおてつだいとして計算する
+    // (2) 満杯になった後は、残り時間ぶん「食材確率0%・スキル確率0%・きのみ確率100%」の育成相当（バッグが空かないため実質ゼロ）に切り替える
+    // 就寝直前にバッグが空という前提（睡眠機能OFF時はsleepMin=0で従来と同じ結果になる）。
+    // 食材ときのみは同じ所持数枠を消費するが1回あたりの個数が異なるため、食材確率×平均食材個数＋きのみ確率×きのみ個数、という
+    // 期待値でバッグの埋まり方（満杯までのおてつだい回数）を近似する。
+    var sleepMin = computeSleepMinutes();
+    var awakeMin = 1440 - sleepMin;
+    var helpCountAwake = (awakeMin*60)/finalSpeed;
+    var helpCountSleep = (sleepMin*60)/finalSpeed;
+    if (trace){
+      trace.push('  睡眠'+sleepMin+'分・覚醒'+awakeMin+'分');
+      trace.push('  覚醒中おてつだい回数 = '+awakeMin+'×60/'+fmtN(finalSpeed,4)+' = '+fmtN(helpCountAwake,3)+'回');
+      trace.push('  睡眠中おてつだい回数（満杯考慮前） = '+sleepMin+'×60/'+fmtN(finalSpeed,4)+' = '+fmtN(helpCountSleep,3)+'回');
+    }
+
+    var berryCountAwake = helpCountAwake * berryProb;
+    var skillCountAwake = helpCountAwake * skillProb;
+    var berryEnergyAwake = berryCountAwake * berryEnergyPerBerry * berryPerCount * favoriteMult;
+    var skillEnergyAwake = skillCountAwake * energyPerSkill;
+    if (trace){
+      trace.push('  [覚醒中] きのみ回数='+fmtN(helpCountAwake,3)+'×'+fmtN(berryProb*100,3)+'%='+fmtN(berryCountAwake,3)+'回・きのみエナジー='+fmtN(berryCountAwake,3)+'×'+berryEnergyPerBerry+'×'+berryPerCount+'×'+favoriteMult+'='+fmtN(berryEnergyAwake,2));
+      trace.push('  [覚醒中] スキル回数='+fmtN(helpCountAwake,3)+'×'+fmtN(skillProb*100,3)+'%='+fmtN(skillCountAwake,3)+'回・スキルエナジー='+fmtN(skillCountAwake,3)+'×'+fmtN(energyPerSkill,2)+'='+fmtN(skillEnergyAwake,2));
+    }
+
+    var capacitySubskillBonus = (cfg.capacityS?6:0) + (cfg.capacityM?12:0) + (cfg.capacityL?18:0);
+    var capacityRibbonBonus = parseInt(cfg.sleepRibbon,10) || 0;
+    var capacityEventBonus = parseInt(state.common.eventCapacityBonus,10) || 0;
+    // シアンの砂浜EXでメインきのみが一致した場合のみ+5（tool.htmlのgetExCapacityBonusと同じ仕様。サブ一致は対象外）
+    var capacityExBonus = (field.select === 'cyan_ex' && fx.mainMatch) ? 5 : 0;
+    // 進化段階による所持数ボーナス：進化1回につき+5（baseCapacityは進化前提の素の値のため、進化段階数ぶん別途加算する。本人確認済み・2026/09/15）
+    var capacityEvolutionBonus = (db.evolutionStages || 0) * 5;
+    var preCtCapacity = (db.baseCapacity || 20) + capacityEvolutionBonus + capacitySubskillBonus + capacityRibbonBonus + capacityEventBonus + capacityExBonus;
+    // CT（いいキャンプチケット）は所持数にも×1.2（切り上げ）がかかる（tool.htmlのcalculateMaxCapacityと同じ仕様）
+    var capacity = field.campTicket ? Math.ceil(preCtCapacity * 1.2) : preCtCapacity;
+    if (trace) trace.push('  所持数 = 基礎'+(db.baseCapacity||20)+' +進化'+capacityEvolutionBonus+' +サブスキル'+capacitySubskillBonus+' +リボン'+capacityRibbonBonus+' +イベント'+capacityEventBonus+' +EX'+capacityExBonus+' = '+preCtCapacity+(field.campTicket?'　→ CTで×1.2切上げ='+capacity:''));
+    var avgFoodCount = computeAvgFoodCount(db, cfg, eventFoodCountBonus);
+    var itemsPerHelp = foodProb*avgFoodCount + berryProb*berryPerCount; // 1おてつだいあたりの所持数消費期待値
+    // 睡眠設定の有無に関わらず、常時この確率で稼働し続けた場合に所持数が満杯になるまでの目安（バッグが空の状態からスタートする前提）
+    var capacityFillHelps = itemsPerHelp > 0 ? capacity/itemsPerHelp : Infinity;
+    var capacityFillMinutes = capacityFillHelps * (finalSpeed/60);
+    if (trace){
+      trace.push('  1回あたり所持数消費期待値 = 食材確率×平均食材個数('+fmtN(avgFoodCount,2)+') + きのみ確率×きのみ個数('+berryPerCount+') = '+fmtN(itemsPerHelp,4));
+      trace.push('  満杯までのおてつだい回数 = 所持数'+capacity+'/'+fmtN(itemsPerHelp,4)+' = '+fmtN(capacityFillHelps,3)+'回（'+fmtN(capacityFillMinutes,2)+'分相当）');
+    }
+    var helpsPhase1 = 0;
+    if (sleepMin > 0){
+      helpsPhase1 = itemsPerHelp > 0 ? Math.min(capacity/itemsPerHelp, helpCountSleep) : helpCountSleep;
+    }
+    var helpsPhase2 = Math.max(0, helpCountSleep - helpsPhase1);
+    if (trace && sleepMin>0){
+      trace.push('  [睡眠フェーズ分割] Phase1（満杯まで通常確率） = min('+fmtN(capacityFillHelps,3)+', 睡眠中回数'+fmtN(helpCountSleep,3)+') = '+fmtN(helpsPhase1,3)+'回');
+      trace.push('  [睡眠フェーズ分割] Phase2（満杯後・きのみ100%だが全ロス） = '+fmtN(helpCountSleep,3)+'-'+fmtN(helpsPhase1,3)+' = '+fmtN(helpsPhase2,3)+'回');
+    }
+
+    var berryCountPhase1 = helpsPhase1 * berryProb;
+    var skillCountPhase1 = helpsPhase1 * skillProb;
+    var berryEnergyPhase1 = berryCountPhase1 * berryEnergyPerBerry * berryPerCount * favoriteMult;
+    var skillEnergyPhase1 = skillCountPhase1 * energyPerSkill;
+    if (trace && sleepMin>0){
+      trace.push('  [Phase1] きのみ回数='+fmtN(helpsPhase1,3)+'×'+fmtN(berryProb*100,3)+'%='+fmtN(berryCountPhase1,3)+'回・きのみエナジー='+fmtN(berryEnergyPhase1,2));
+      trace.push('  [Phase1] スキル回数='+fmtN(helpsPhase1,3)+'×'+fmtN(skillProb*100,3)+'%='+fmtN(skillCountPhase1,3)+'回・スキルエナジー='+fmtN(skillEnergyPhase1,2));
+    }
+
+    var itemsCollectedSleep = itemsPerHelp * helpsPhase1; // ≒ capacityで頭打ち
+    var itemsWastedSleep = berryPerCount * helpsPhase2; // 満杯後はきのみ100%だが全てロス
+    var itemsProducedSleep = itemsCollectedSleep + itemsWastedSleep;
+    var energyWastedSleep = itemsWastedSleep * berryEnergyPerBerry * favoriteMult;
+
+    var berryCount = berryCountAwake + berryCountPhase1; // 表示用（きのみ「回数」換算の目安）
+    var berryEnergyDay = berryEnergyAwake + berryEnergyPhase1;
+    var skillCountDay = skillCountAwake + skillCountPhase1;
+    var skillEnergyDay = skillEnergyAwake + skillEnergyPhase1;
+    if (trace){
+      trace.push('  1日のきのみエナジー = 覚醒('+fmtN(berryEnergyAwake,2)+') + Phase1('+fmtN(berryEnergyPhase1,2)+') = '+fmtN(berryEnergyDay,2));
+      trace.push('  1日のスキルエナジー = 覚醒('+fmtN(skillEnergyAwake,2)+') + Phase1('+fmtN(skillEnergyPhase1,2)+') = '+fmtN(skillEnergyDay,2));
+    }
+
+    // 食材エナジー（本人確認済み・2026/09/15：ミュウツー・クレセリア・ミュウのみ反映。サポート4枠は対象外）。
+    // 満杯後(Phase2)は食材確率自体が0%（きのみ100%扱い）になる設計のため、他のエナジーと同じくAwake+Phase1のみを計上する。
+    // 重要：食材エナジーは「きのみゾーン」の対象外（エスパーきのみ=マゴのみ以外はゾーン補正がかからないべき、という方針に基づく）
+    // ため、totalDay/perMinには含めて表示用の合計に反映しつつ、ゾーン補正の対象になる分（zonePerMin）とは別枠(flatPerMin)で返す。
+    // simulate()側はflatPerMinを(1+zl/100)の外側で加算することで、ゾーン非対象を維持する。
+    var foodEnergyDay = 0;
+    if (db.foodEnergyTracked){
+      var avgFoodEnergyPerEvent = computeAvgFoodEnergy(db, cfg, eventFoodCountBonus);
+      var foodCountAwake = helpCountAwake * foodProb;
+      var foodCountPhase1 = helpsPhase1 * foodProb;
+      foodEnergyDay = foodCountAwake*avgFoodEnergyPerEvent + foodCountPhase1*avgFoodEnergyPerEvent;
+      if (trace) trace.push('  1日の食材エナジー（ゾーン補正対象外） = (覚醒'+fmtN(foodCountAwake,3)+'+Phase1'+fmtN(foodCountPhase1,3)+')×平均食材エナジー'+fmtN(avgFoodEnergyPerEvent,2)+' = '+fmtN(foodEnergyDay,2));
+    }
+
+    // ミュウのメインスキルのうち、実際に「エスパーきのみ（マゴのみ）」相当のエナジーを生むのはきのみバースト・
+    // おてつだいサポートSの2つだけ（本人確認済み・2026/09/15）。それ以外（ゆびをふる・エナジーチャージ系・
+    // ゆめのかけらゲットS・食材ゲットS・げんき系・料理系）は、このツールの比較用に便宜上「エナジー」換算しているだけの
+    // 別種の効果なので、きのみゾーンの補正対象から除外する（食材エナジーと同じ扱い＝flat側に計上）。
+    // ミュウ以外（サポート4枠・クレセリア等）は従来通りskillEnergyDayを全てゾーン対象として扱う。
+    var MEW_ZONE_ELIGIBLE_SKILLS = { berryBurst:true, helpSupport_S:true };
+    var skillZoneEligible = true;
+    if (db === POKEMON_DB.mew){
+      skillZoneEligible = !!MEW_ZONE_ELIGIBLE_SKILLS[cfg.mewMainSkill];
+    }
+    var zoneEligibleSkillEnergyDay = skillZoneEligible ? skillEnergyDay : 0;
+    var flatSkillEnergyDay = skillZoneEligible ? 0 : skillEnergyDay;
+
+    var zoneEligibleDay = berryEnergyDay + zoneEligibleSkillEnergyDay; // きのみゾーンの補正対象（エスパーきのみ・ゾーン対象スキル系）
+    var flatDay = foodEnergyDay + flatSkillEnergyDay; // ゾーン補正対象外（食材エナジー＋ミュウの非対象メインスキル）
+    var totalDay = zoneEligibleDay + flatDay;
+    if (trace){
+      trace.push('  ゾーン補正対象/日 = きのみ('+fmtN(berryEnergyDay,2)+') + '+(skillZoneEligible?'スキル('+fmtN(skillEnergyDay,2)+')':'0（このスキルはゾーン対象外）')+' = '+fmtN(zoneEligibleDay,2));
+      trace.push('  ゾーン対象外/日 = 食材('+fmtN(foodEnergyDay,2)+') + '+(skillZoneEligible?'0':'スキル('+fmtN(skillEnergyDay,2)+')')+' = '+fmtN(flatDay,2));
+      trace.push('  合計エナジー/日 = '+fmtN(zoneEligibleDay,2)+' + '+fmtN(flatDay,2)+' = '+fmtN(totalDay,2)+'（1分あたり合計'+fmtN(totalDay/1440,3)+'＝ゾーン対象'+fmtN(zoneEligibleDay/1440,3)+'+対象外'+fmtN(flatDay/1440,3)+'）');
+    }
+    return { db, finalSpeed, helpCountPerDay, skillProb, foodProb, berryEnergyPerBerry, berryPerCount, favoriteMult, berryCount,
+      berryEnergyDay, skillCountDay, energyPerSkill, skillEnergyDay, foodEnergyDay, totalDay, perMin: totalDay/1440,
+      skillZoneEligible: skillZoneEligible,
+      zonePerMin: zoneEligibleDay/1440, flatPerMin: flatDay/1440,
+      capacityFillHelps: capacityFillHelps, capacityFillMinutes: capacityFillMinutes,
+      sleep: { enabled: sleepMin>0, sleepMin: sleepMin, capacity: capacity, itemsProducedSleep: itemsProducedSleep, itemsCollectedSleep: itemsCollectedSleep, itemsWastedSleep: itemsWastedSleep, energyWastedSleep: energyWastedSleep, helpsPhase1: helpsPhase1, helpsPhase2: helpsPhase2 } };
+  }
+
+  // ---------- みかづきのいのり（クレセリア）自動計算 ----------
+  // エスパータイプ種族数 = クレセリア本人(1) + サポート4枠のうちエスパータイプの「異なる種族」の数。
+  // 同一種族が2匹以上いても2匹目以降はカウントしない（例: ネイティオ×2 → 1種としてカウント）。上限5。
+  // 「その他のポケモン」枠は既定ではタイプ不明のため対象外だが、枠ごとにタイプを「エスパー」と指定した場合はカウント対象になる
+  // （実際の種族名は分からないため、この枠自身を1種として扱う＝枠が複数あっても互いに重複判定はしない）。
+  function calcCresseliaPsychicCount(){
+    var species = { cresselia: true };
+    state.support.forEach(function(entry){
+      if (entry.key === 'other'){
+        if (entry.cfg.type === 'エスパー') species['other:'+entry.id] = true;
+        return;
+      }
+      var db = POKEMON_DB[entry.key];
+      if (db && db.type === 'エスパー') species[entry.key] = true;
+    });
+    return Math.min(Object.keys(species).length, 5);
+  }
+  // 1回のスキル発動で「自分が受け取るきのみ」＋「指定した各メンバーが受け取るきのみ」の合計エナジーを計算する汎用ロジック。
+  // みかづきのいのり（クレセリア）／標準きのみバースト（ミュウ）／ものまねでこれらをコピーした場合（バリヤード）で共用。
+  // selfEntity={db,level}が自分側、teamEntitiesが[{db,level},...]の各メンバー、dataが{self,team}のきのみ個数。
+  function computeBerryBurstEnergyFor(selfEntity, teamEntities, data){
+    var selfFx = fieldEffectsFor(selfEntity.db, state.field);
+    var selfBerryEnergyPerBerry = calcBerryEnergyPerBerry(selfEntity.db.berryBaseEnergy, selfEntity.level);
+    var selfFavoriteMult = selfFx.isFavorite ? (selfFx.exOther==='berry'?2.4:2) : 1;
+    var selfEnergy = selfBerryEnergyPerBerry * data.self * selfFavoriteMult;
+
+    // チームが受け取るきのみバースト分は、各メンバー自身の好物きのみ種別（マゴのみ以外も含む）でエナジー換算する
+    var teamEnergy = 0;
+    var teamBreakdown = [];
+    teamEntities.forEach(function(ent){
+      var mfx = fieldEffectsFor(ent.db, state.field);
+      var mBerryEnergyPerBerry = calcBerryEnergyPerBerry(ent.db.berryBaseEnergy, ent.level);
+      var mFavoriteMult = mfx.isFavorite ? (mfx.exOther==='berry'?2.4:2) : 1;
+      var e = mBerryEnergyPerBerry * data.team * mFavoriteMult;
+      teamEnergy += e;
+      teamBreakdown.push({ name: ent.db.name, count: data.team, energy: e });
+    });
+
+    return { selfEnergy, teamEnergy, total: selfEnergy + teamEnergy, teamBreakdown };
+  }
+  // サポート4枠を{db,level}のリストとして組み立てるヘルパ。excludeIdを指定すると、そのサポート枠自身を除外する
+  // （ものまねでバリヤード自身がself側に回る際、team側からバリヤード自身を除くために使う）。
+  // 「その他のポケモン」枠はタイプを指定した場合のみ含める（タイプ未指定は換算不可のため除外、従来通り）。
+  function allSupportEntities(excludeId){
+    var list = [];
+    state.support.forEach(function(entry){
+      if (excludeId && entry.id === excludeId) return;
+      var mdb;
+      if (entry.key === 'other'){
+        var otherBerry = TYPE_TO_BERRY[entry.cfg.type];
+        if (!otherBerry) return;
+        mdb = { name:'その他のポケモン（'+entry.cfg.type+'）', berryName: otherBerry, berryBaseEnergy: ALL_BERRIES[otherBerry] };
+      } else {
+        mdb = POKEMON_DB[entry.key];
+      }
+      list.push({ db: mdb, level: entry.cfg.level || 70 });
+    });
+    return list;
+  }
+  // みかづきのいのり（クレセリア）／標準きのみバースト（ミュウ）が「本人が発動した場合」のラッパ（従来のAPIを維持）。
+  // selfDbKeyが自分自身の種族、cfgが自分自身の設定、dataが{self,team}のきのみ個数。チームはサポート4枠全員（除外なし）。
+  function computeBerryBurstEnergy(selfDbKey, cfg, data){
+    var selfEntity = { db: POKEMON_DB[selfDbKey], level: cfg.level };
+    var teamEntities = allSupportEntities(null);
+    return computeBerryBurstEnergyFor(selfEntity, teamEntities, data);
+  }
+  function berryBurstTeamLinesHtml(teamBreakdown){
+    return teamBreakdown.map(function(x){
+      return escapeHtml(x.name)+'×'+(Math.round(x.count*100)/100)+'個('+fmtInt(x.energy)+')';
+    }).join('　');
+  }
+  function computeMoonlightBurstEnergy(t){
+    var cfg = t.cfg;
+    var skillLevel = cfg.moonlightSkillLevel || 6;
+    var psychicCount = calcCresseliaPsychicCount();
+    var data = (MOONLIGHT_PRAYER_TABLE[skillLevel] && MOONLIGHT_PRAYER_TABLE[skillLevel][psychicCount]) || { self:25, team:1 };
+    var r = computeBerryBurstEnergy('cresselia', cfg, data);
+    return Object.assign({ skillLevel:skillLevel, psychicCount:psychicCount, data:data }, r);
+  }
+  function moonlightNoteHtml(t, moonlight){
+    if (!moonlight) return '';
+    var teamLines = berryBurstTeamLinesHtml(moonlight.teamBreakdown);
+    return 'エスパータイプ種族数 '+moonlight.psychicCount+'（クレセリア本人＋サポート構成から自動判定、同一種族は1種としてカウント）・スキルLv'+moonlight.skillLevel+
+      ' → 自分 '+moonlight.data.self+'個('+fmtInt(moonlight.selfEnergy)+') ＋ チーム '+(teamLines||'（サポート未設定）')+
+      '　＝ 1回あたり合計 <b>'+fmtInt(moonlight.total)+'</b> エナジー';
+  }
+  // ---------- 標準きのみバースト（ミュウ）自動計算 ----------
+  // クレセリアのみかづきのいのりと違い、種族数には依存せずスキルLvのみで効果量が決まる（BERRY_BURST_TABLE参照）。
+  function computeMewBerryBurstEnergy(t){
+    var cfg = t.cfg;
+    var skillLevel = cfg.skillLevel || 6;
+    if (skillLevel < 1 || skillLevel > 6) skillLevel = 6;
+    var base = BERRY_BURST_TABLE[skillLevel] || BERRY_BURST_TABLE[6];
+    // イベント補正「きのみバーストの効果量」：ミュウ自身がタイプ/とくいなもの指定に一致する場合のみ、
+    // 自分・チーム受け取り分の両方に倍率をかける（tool.htmlのeventBerryBurstと同じ適用範囲）。
+    var mult = eventCorrectionMatchesDb(POKEMON_DB.mew) ? eventBerryBurstMultiplier() : 1.0;
+    var data = { self: base.self * mult, team: base.team * mult };
+    var r = computeBerryBurstEnergy('mew', cfg, data);
+    return Object.assign({ skillLevel:skillLevel, data:data }, r);
+  }
+  function mewBerryBurstNoteHtml(t, burst){
+    if (!burst) return '';
+    var teamLines = berryBurstTeamLinesHtml(burst.teamBreakdown);
+    var fmtCount = function(n){ return Math.round(n*100)/100; };
+    return '標準きのみバースト（種族数には依存せずスキルLvのみで決まる。イベント補正適用時は倍率込み）・スキルLv'+burst.skillLevel+
+      ' → 自分 '+fmtCount(burst.data.self)+'個('+fmtInt(burst.selfEnergy)+') ＋ チーム '+(teamLines||'（サポート未設定）')+
+      '　＝ 1回あたり合計 <b>'+fmtInt(burst.total)+'</b> エナジー';
+  }
+  // ---------- バリヤード「ものまね」自動計算 ----------
+  // 公式仕様（game8・fireyoshida.com確認、2026/09/15）：チーム内の自分以外1体をランダムに選び、そのメインスキルを
+  // コピーして発動する。発動時のスキルレベルはコピー元ではなく「ものまね」使用者（バリヤード）自身のレベルが適用される。
+  // 合意による実装方針：
+  //   ・コピー候補は「サポート残り3枠＋現在アクティブな主力（切替元ミュウツー or 切替先）」の計4体から均等ランダム(1/4)
+  //   ・サーナイト(げんきオールS)・エーフィ(エナジーチャージM)・ネイティオ(食材ゲットS)・ムシャーナ(ゆめのかけらゲットS)・
+  //     別のバリヤード(ものまね、コピー不可の代替エナジー)・その他のポケモンは、いずれを引いてもエナジー度外視(0)
+  //   ・ミュウツーのサイコブレイクはそもそもコピー不可の仕様のため同じく0
+  //   ・主力がクレセリアの場合のみ「みかづきのいのり」、ミュウ＆メインスキル「きのみバースト」選択時のみ「きのみバースト」を反映。
+  //     どちらも「バリヤード自身が発動したことになる」ため、self分はバリヤード自身の好物・レベル・フィールド判定で計算し、
+  //     team分は「サポート残り3枠＋本来の持ち主（クレセリア/ミュウ）」が対象（バリヤード自身はteam側から除外する）
+  //   ・みかづきのいのり／きのみバーストの表はどちらもLv1〜6までのため、バリヤード自身のスキルLvもこの参照時のみ1〜6にクランプ
+  function computeMrmimeMimicEnergy(entry, mainContext){
+    var mimicLevel = entry.cfg.skillLevel || 6;
+    if (mimicLevel < 1 || mimicLevel > 6) mimicLevel = 6;
+
+    if (!mainContext){
+      return { mimicLevel:mimicLevel, contextType:'none', total:0, avg:0 };
+    }
+
+    var selfEntity = { db: POKEMON_DB.mrmime, level: entry.cfg.level };
+    var otherSupport = allSupportEntities(entry.id); // 自分（バリヤード自身）を除いたサポート残り枠
+
+    if (mainContext.type === 'cresselia'){
+      var psychicCount = calcCresseliaPsychicCount();
+      var data = (MOONLIGHT_PRAYER_TABLE[mimicLevel] && MOONLIGHT_PRAYER_TABLE[mimicLevel][psychicCount]) || { self:25, team:1 };
+      var teamEntities = otherSupport.concat([{ db: POKEMON_DB.cresselia, level: mainContext.target.cfg.level }]);
+      var r = computeBerryBurstEnergyFor(selfEntity, teamEntities, data);
+      return Object.assign({ mimicLevel:mimicLevel, contextType:'cresselia', psychicCount:psychicCount, data:data, avg: r.total/4 }, r);
+    }
+    if (mainContext.type === 'mewBerryBurst'){
+      var data2 = BERRY_BURST_TABLE[mimicLevel] || BERRY_BURST_TABLE[6];
+      var teamEntities2 = otherSupport.concat([{ db: POKEMON_DB.mew, level: mainContext.target.cfg.level }]);
+      var r2 = computeBerryBurstEnergyFor(selfEntity, teamEntities2, data2);
+      return Object.assign({ mimicLevel:mimicLevel, contextType:'mewBerryBurst', data:data2, avg: r2.total/4 }, r2);
+    }
+    return { mimicLevel:mimicLevel, contextType:'none', total:0, avg:0 };
+  }
+  // contexts: [{label, mimic}, ...]（現在の各切替先を主力とした場合のcomputeMrmimeMimicEnergy結果）。
+  // 主力がミュウツー(切替元)の場合は常に0（サイコブレイクはコピー不可）なので、この関数側で固定行として追加する。
+  // displayName: 上部のサポート結果・スキル確率欄が実際にどの文脈を基準に表示されているか（targetCalcs[0]の名前）。
+  function mrmimeMimicNoteHtml(contexts, displayName){
+    if (!contexts || !contexts.length) return '';
+    var mimicLevel = (contexts[0] && contexts[0].mimic) ? contexts[0].mimic.mimicLevel : 6;
+    var head = 'ものまねのコピー候補は「サポート残り3枠＋現在アクティブな主力（切替元のミュウツー、または切替先）」の計4体から均等ランダム(1/4)。バリヤード自身の「ものまね」スキルLv'+mimicLevel+'で判定。サポート3枠側は誰であっても常に0エナジー扱い。';
+    var lines = [];
+    lines.push('「ミュウツー（切替元）」が主力の時: <b>0</b>（サイコブレイクはコピー不可のため）');
+    contexts.forEach(function(c){
+      var m = c.mimic;
+      var val = m ? fmtInt(m.avg) : '0';
+      var detail;
+      if (m && m.contextType === 'cresselia'){
+        var teamLines = berryBurstTeamLinesHtml(m.teamBreakdown);
+        detail = '（みかづきのいのりをコピー：エスパー種族数'+m.psychicCount+'・自分'+m.data.self+'個('+fmtInt(m.selfEnergy)+')＋チーム '+(teamLines||'（対象なし）')+' ＝ '+fmtInt(m.total)+'　÷4）';
+      } else if (m && m.contextType === 'mewBerryBurst'){
+        var teamLines2 = berryBurstTeamLinesHtml(m.teamBreakdown);
+        detail = '（きのみバーストをコピー：自分'+m.data.self+'個('+fmtInt(m.selfEnergy)+')＋チーム '+(teamLines2||'（対象なし）')+' ＝ '+fmtInt(m.total)+'　÷4）';
+      } else {
+        detail = '（対象スキルがエナジー度外視のため0）';
+      }
+      lines.push('「'+escapeHtml(c.label)+'」が主力の時: <b>'+val+'</b>'+detail);
+    });
+    var listHtml = lines.map(function(l){ return '・'+l; }).join('<br>');
+    var caveat = '上のスキル確率・スキルエナジー欄、および上部のサポート結果表示は「'+escapeHtml(displayName||'')+'」使用時点の値を基準に計算している（切替元や他の切替先とは値が異なる場合がある）。';
+    return head+'<br>'+listHtml+'<br>'+caveat;
+  }
+  // ---------- おてつだいサポートS（ミュウ）自動計算 ----------
+  // 公式仕様：「自分を含むチームの誰か1匹」をランダムに選び、そのポケモンのおてつだいをスキルLv依存の回数だけ即完了させる
+  // （HELP_SUPPORT_S_COUNTS。tool.html・game8で一致確認）。合意で以下の通り簡略化して実装：
+  //   ・選出確率は自分＋サポート4枠＝5体から均等（1/5ずつ）と仮定（公式に重み付けの記載なし）
+  //   ・食材を引いた場合のぶんは計算に含めない（このツールが食材の価値をモデル化していないため）＝きのみを引いた場合のみで期待値を計算
+  //   ・「その他のポケモン」枠でタイプ未設定の場合は、マゴのみ（エスパー）と同じきのみエナジー扱いにする
+  // 各メンバーの「1回のおてつだいで得られるきのみエナジー」× 回数、を5体で平均したものが1回のスキル発動あたりの期待エナジー
+  function computeMewHelpSupportEnergy(t){
+    var cfg = t.cfg;
+    var skillLevel = cfg.skillLevel || 7;
+    if (skillLevel < 1 || skillLevel > 7) skillLevel = 7;
+    var helpCount = HELP_SUPPORT_S_COUNTS[skillLevel] || HELP_SUPPORT_S_COUNTS[7];
+
+    var members = [];
+    // 自分（ミュウ本体）
+    var selfDb = POKEMON_DB.mew;
+    var selfFx = fieldEffectsFor(selfDb, state.field);
+    var selfBerryPerCount = (selfDb.defaultBerryCount||1) + (cfg.berryS?1:0);
+    var selfFavoriteMult = selfFx.isFavorite ? (selfFx.exOther==='berry'?2.4:2) : 1;
+    var selfBerryEnergyPerHelp = calcBerryEnergyPerBerry(selfDb.berryBaseEnergy, cfg.level) * selfBerryPerCount * selfFavoriteMult;
+    members.push({ name:selfDb.name, berryEnergyPerHelp:selfBerryEnergyPerHelp });
+
+    // サポート4枠
+    state.support.forEach(function(entry){
+      var mdb, mBerryPerCount, mLevel = entry.cfg.level || 70;
+      if (entry.key === 'other'){
+        // タイプ未設定ならマゴのみ（エスパー）と同じきのみエナジー扱いにする（合意、2026/09/15）
+        var effType = entry.cfg.type || 'エスパー';
+        var otherBerry = TYPE_TO_BERRY[effType];
+        mdb = { name:'その他のポケモン（'+(entry.cfg.type||'未設定→マゴのみ扱い')+'）', berryName: otherBerry, berryBaseEnergy: ALL_BERRIES[otherBerry] };
+        mBerryPerCount = 1; // 得意分野不明のため基本個数1個として計算（きのみとくいの+1個分は考慮しない）
+      } else {
+        mdb = POKEMON_DB[entry.key];
+        mBerryPerCount = (mdb.defaultBerryCount||1) + (entry.cfg.berryS?1:0);
+      }
+      var mfx = fieldEffectsFor(mdb, state.field);
+      var mFavoriteMult = mfx.isFavorite ? (mfx.exOther==='berry'?2.4:2) : 1;
+      var mBerryEnergyPerHelp = calcBerryEnergyPerBerry(mdb.berryBaseEnergy, mLevel) * mBerryPerCount * mFavoriteMult;
+      members.push({ name: mdb.name, berryEnergyPerHelp: mBerryEnergyPerHelp });
+    });
+
+    var sumPerHelp = members.reduce(function(a,m){ return a+m.berryEnergyPerHelp; }, 0);
+    var avgPerHelp = sumPerHelp / members.length;
+    var total = avgPerHelp * helpCount;
+    return { skillLevel:skillLevel, helpCount:helpCount, members:members, avgPerHelp:avgPerHelp, total:total };
+  }
+  function mewHelpSupportNoteHtml(t, hs){
+    if (!hs) return '';
+    var memberLines = hs.members.map(function(m){
+      return escapeHtml(m.name)+'('+fmtInt(m.berryEnergyPerHelp)+'/回)';
+    }).join('　');
+    return 'チーム'+hs.members.length+'体から均等ランダム選出（食材を引いた場合は計算に含めない）・スキルLv'+hs.skillLevel+'（'+hs.helpCount+'回）'+
+      '　→ '+memberLines+
+      '　→ 平均 '+fmtInt(hs.avgPerHelp)+'/回 × '+hs.helpCount+'回　＝ 1回あたり期待値 <b>'+fmtInt(hs.total)+'</b> エナジー';
+  }
+
+  // ---------- zone/switch simulation (unchanged core) ----------
+  var THRESHOLDS_CACHE = {};
+  function thresholdsFor(step, cap){
+    var key = step+"_"+cap;
+    if (!THRESHOLDS_CACHE[key]){
+      var arr = [];
+      for (var x=step; x<=cap+1e-9; x+=step) arr.push(Math.round(x*1e6)/1e6);
+      THRESHOLDS_CACHE[key]=arr;
+    }
+    return THRESHOLDS_CACHE[key];
+  }
+  // 切替タイミング候補の表示ラベルを1箇所に集約（元は3箇所に同じ内容の三項演算子が重複していた）。
+  // withSuffix=trueの場合のみ「で切替」を末尾に付ける（比較サマリーの見出しでのみ使用）
+  function thresholdLabel(th, withSuffix){
+    if (th === null) return '切替なし';
+    if (th === 0) return '即時切替';
+    return '+'+th+'%'+(withSuffix ? 'で切替' : '');
+  }
+  // preRate/postRate：きのみゾーンの補正対象になるエナジー（エスパーきのみ＝マゴのみのベリー・きのみバースト系スキル等）の分/分。
+  // preFlatRate/postFlatRate：ゾーン補正の対象外にすべきエナジー（食材エナジーなど）の分/分。echargeと同じく(1+zl/100)の外側で
+  // 加算する（本人確認済み・2026/09/15：「食材エナジー...にはかからないべき」の方針に基づく）。省略時は0（後方互換）。
+  function simulate(I, growthPerDay, preRate, postRate, switchThreshold, windowMin, step, cap, echarge, preFlatRate, postFlatRate, trace){
+    preFlatRate = preFlatRate || 0;
+    postFlatRate = postFlatRate || 0;
+    var growthPerMin = growthPerDay/1440;
+    var switchTime;
+    if (switchThreshold===null){ switchTime = windowMin; }
+    else { var raw=(switchThreshold-I)/growthPerMin; switchTime = Math.min(Math.max(0,raw), windowMin); }
+    var thresholds = thresholdsFor(step,cap);
+    var boundariesSet = {}; boundariesSet[0]=true;
+    var newActivations = 0;
+    thresholds.forEach(function(x){
+      var t=(x-I)/growthPerMin;
+      if (t>1e-9 && t<switchTime-1e-9) boundariesSet[Math.round(t*1e6)/1e6]=true;
+      if (t>1e-9 && t<=switchTime+1e-9) newActivations++;
+    });
+    boundariesSet[Math.round(switchTime*1e6)/1e6]=true;
+    var boundaries = Object.keys(boundariesSet).map(Number).sort(function(a,b){return a-b;});
+    function zoneLevelAt(t){ return Math.min(cap, step*Math.floor((I+growthPerMin*t)/step+1e-9)); }
+    var mewtwoEnergy=0;
+    var intervalLines = [];
+    for (var i=0;i<boundaries.length-1;i++){
+      var s=boundaries[i], e=boundaries[i+1]; var dur=e-s; if(dur<=0) continue;
+      var zl = zoneLevelAt((s+e)/2);
+      var contrib = preRate*dur*(1+zl/100) + preFlatRate*dur;
+      mewtwoEnergy += contrib;
+      if (trace) intervalLines.push('    '+fmtN(s,2)+'〜'+fmtN(e,2)+'分（'+fmtN(dur,2)+'分間・ゾーン'+fmtN(zl,2)+'%）: '+fmtN(preRate,3)+'×'+fmtN(dur,2)+'×(1+'+fmtN(zl,2)+'/100)'+(preFlatRate?' + '+fmtN(preFlatRate,3)+'×'+fmtN(dur,2):'')+' = '+fmtN(contrib,2));
+    }
+    var echargeTotal = newActivations*echarge;
+    mewtwoEnergy += echargeTotal;
+    var remaining = windowMin - switchTime;
+    var finalZone = zoneLevelAt(switchTime);
+    var postEnergy = 0;
+    if (switchThreshold!==null && remaining>0) postEnergy = postRate*remaining*(1+finalZone/100) + postFlatRate*remaining;
+    var total = mewtwoEnergy+postEnergy;
+    if (trace){
+      trace.push('[ゾーンシミュレーション] I(開始ゾーン)='+fmtN(I,4)+'%・成長率='+fmtN(growthPerDay,4)+'%/24h（='+fmtN(growthPerMin,5)+'%/分）・評価期間='+windowMin+'分・切替閾値='+(switchThreshold===null?'切替なし':fmtN(switchThreshold,2)+'%'));
+      trace.push('  切替時刻 = '+(switchThreshold===null?'windowMin（切替なしのため評価期間まるごと）':'min(max(0, ('+switchThreshold+'-'+fmtN(I,4)+')/'+fmtN(growthPerMin,5)+'), '+windowMin+')')+' = '+fmtN(switchTime,3)+'分');
+      trace.push('  区間ごとの切替元エナジー（レート×分×(1+ゾーン%/100)'+(preFlatRate?' + 対象外レート×分':'')+'）:');
+      intervalLines.forEach(function(l){ trace.push(l); });
+      trace.push('    区間合計 = '+fmtN(mewtwoEnergy-echargeTotal,2));
+      trace.push('  新規スキル発動'+newActivations+'回 × 固定加算'+fmtN(echarge,2)+' = '+fmtN(echargeTotal,2));
+      trace.push('  切替元合計（区間合計+固定加算） = '+fmtN(mewtwoEnergy,2));
+      trace.push('  残り時間 = '+windowMin+'-'+fmtN(switchTime,3)+' = '+fmtN(remaining,3)+'分・最終ゾーン = '+fmtN(finalZone,2)+'%');
+      if (switchThreshold!==null && remaining>0){
+        trace.push('  切替先エナジー = '+fmtN(postRate,3)+'×'+fmtN(remaining,3)+'×(1+'+fmtN(finalZone,2)+'/100)'+(postFlatRate?' + '+fmtN(postFlatRate,3)+'×'+fmtN(remaining,3):'')+' = '+fmtN(postEnergy,2));
+      } else {
+        trace.push('  切替先エナジー = 0（'+(switchThreshold===null?'切替なし':'残り時間なし')+'）');
+      }
+      trace.push('  合計エナジー = 切替元'+fmtN(mewtwoEnergy,2)+' + 切替先'+fmtN(postEnergy,2)+' = '+fmtN(total,2));
+    }
+    return { total: total, switchTime, activations:newActivations, finalZone, boundaries };
+  }
+  function timeToCap(I, growthPerDay, cap){ return Math.max(0,(cap-I)/(growthPerDay/1440)); }
+
+  // ---------- formatting ----------
+  var DOW=["月","火","水","木","金","土","日"];
+  function formatClock(elapsedMin){
+    var startDow = parseInt(state.start.dow,10)||0;
+    var parts=(state.start.time||"04:00").split(":");
+    var startMin=(parseInt(parts[0],10)||0)*60+(parseInt(parts[1],10)||0);
+    var total=startMin+elapsedMin;
+    var daysOffset=Math.floor(total/1440);
+    var minOfDay=((total%1440)+1440)%1440;
+    var dowIndex=((startDow+daysOffset)%7+7)%7;
+    var h=Math.floor(minOfDay/60), m=Math.round(minOfDay%60);
+    if(m===60){m=0;h+=1;}
+    return DOW[dowIndex]+" "+String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
+  }
+  function formatDuration(min){
+    min=Math.max(0,Math.round(min));
+    var d=Math.floor(min/1440), h=Math.floor((min%1440)/60), m=min%60;
+    return (d>0?d+"日":"")+h+"時間"+m+"分";
+  }
+  function fmtInt(n){ return Math.round(n).toLocaleString("ja-JP"); }
+  function fmtPct(n){ return (Math.round(n*100)/100)+"%"; }
+  // 検算用：丸めすぎず読みやすい桁数で数値を文字列化する（内部計算自体は丸めない。表示専用）
+  function fmtN(n, d){
+    if (n==null || typeof n !== 'number' || !isFinite(n)) return String(n);
+    d = (d==null) ? 2 : d;
+    return n.toLocaleString('ja-JP', { minimumFractionDigits:0, maximumFractionDigits:d });
+  }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+
+  // ---------- generic member-card UI builder ----------
+  function memberSettingsHtml(prefix, cfg, skillKind, moonlightUI, mewUI, zeroLabel){
+    var speedTri = ['up','neutral','down'].map(function(v){
+      var lab = v==='up'?'速い':(v==='neutral'?'無補正':'遅い');
+      return '<label><input type="radio" name="'+prefix+'-spd" value="'+v+'" '+(cfg.spd===v?'checked':'')+'><span>'+lab+'</span></label>';
+    }).join('');
+    var skillTri = ['up','neutral','down'].map(function(v){
+      var lab = v==='up'?'高い':(v==='neutral'?'無補正':'低い');
+      return '<label><input type="radio" name="'+prefix+'-skl" value="'+v+'" '+(cfg.skl===v?'checked':'')+'><span>'+lab+'</span></label>';
+    }).join('');
+    var foodTri = ['up','neutral','down'].map(function(v){
+      var lab = v==='up'?'高い':(v==='neutral'?'無補正':'低い');
+      return '<label><input type="radio" name="'+prefix+'-food" value="'+v+'" '+(cfg.food===v?'checked':'')+'><span>'+lab+'</span></label>';
+    }).join('');
+
+    var skillEnergyField = '';
+    if (moonlightUI){
+      // みかづきのいのりは自動（エスパー種族数連動）のみ。スキルLvだけ選べればいい
+      var mlLevel = cfg.moonlightSkillLevel || 6;
+      skillEnergyField = '<div class="field"><label for="'+prefix+'-mllevel">スキルLv（みかづきのいのり）</label>'+
+        '<select id="'+prefix+'-mllevel" data-field="moonlightSkillLevel" data-prefix="'+prefix+'">'+
+        [1,2,3,4,5,6].map(function(l){return '<option value="'+l+'" '+(mlLevel===l?'selected':'')+'>Lv'+l+'</option>';}).join('')+
+        '</select></div>';
+    } else if (mewUI){
+      var mainSkill = cfg.mewMainSkill || 'metronome';
+      var mainSkillSelect = '<div class="field"><label for="'+prefix+'-mewskill">メインスキル</label>'+
+        '<select id="'+prefix+'-mewskill" data-mewskill="'+prefix+'">'+
+        MEW_SKILL_OPTIONS.map(function(opt){ return '<option value="'+opt.key+'" '+(mainSkill===opt.key?'selected':'')+'>'+opt.label+'</option>'; }).join('')+
+        '</select></div>';
+      var energyInputHtml = '';
+      if (mainSkill === 'energyCharge_M'){
+        energyInputHtml = '<div class="field"><label for="'+prefix+'-skilllevel">スキルLv（エナジーチャージM）</label>'+
+          '<select id="'+prefix+'-skilllevel" data-field="skillLevel" data-prefix="'+prefix+'">'+
+          [1,2,3,4,5,6,7].map(function(l){return '<option value="'+l+'" '+(cfg.skillLevel===l?'selected':'')+'>Lv'+l+'（'+ENERGY_CHARGE_M[l]+'）</option>';}).join('')+
+          '</select></div>';
+      } else if (mainSkill === 'energyCharge_variable'){
+        energyInputHtml = '<div class="field"><label for="'+prefix+'-skilllevel">スキルLv（エナジーチャージS・変動型の平均値）</label>'+
+          '<select id="'+prefix+'-skilllevel" data-field="skillLevel" data-prefix="'+prefix+'">'+
+          [1,2,3,4,5,6,7].map(function(l){return '<option value="'+l+'" '+(cfg.skillLevel===l?'selected':'')+'>Lv'+l+'（'+ENERGY_CHARGE_S_VARIABLE[l]+'）</option>';}).join('')+
+          '</select></div>';
+      } else if (mainSkill === 'berryBurst'){
+        // 標準きのみバースト：種族数には依存せず、スキルLvのみで自動計算する（BERRY_BURST_TABLE参照、下の注記に内訳を表示）
+        var bblv = cfg.skillLevel || 6;
+        if (bblv < 1 || bblv > 6) bblv = 6;
+        energyInputHtml = '<div class="field"><label for="'+prefix+'-skilllevel">スキルLv（きのみバースト）</label>'+
+          '<select id="'+prefix+'-skilllevel" data-field="skillLevel" data-prefix="'+prefix+'">'+
+          [1,2,3,4,5,6].map(function(l){return '<option value="'+l+'" '+(bblv===l?'selected':'')+'>Lv'+l+'</option>';}).join('')+
+          '</select></div>';
+      } else if (mainSkill === 'helpSupport_S'){
+        // おてつだいサポートS：自分＋サポート4枠から均等ランダム選出という仕様をもとに自動計算（下の注記に内訳を表示）
+        var hslv = cfg.skillLevel || 7;
+        if (hslv < 1 || hslv > 7) hslv = 7;
+        energyInputHtml = '<div class="field"><label for="'+prefix+'-skilllevel">スキルLv（おてつだいサポートS）</label>'+
+          '<select id="'+prefix+'-skilllevel" data-field="skillLevel" data-prefix="'+prefix+'">'+
+          [1,2,3,4,5,6,7].map(function(l){return '<option value="'+l+'" '+(hslv===l?'selected':'')+'>Lv'+l+'（'+HELP_SUPPORT_S_COUNTS[l]+'回）</option>';}).join('')+
+          '</select></div>';
+      } else if (MEW_3MODE_SKILLS.indexOf(mainSkill) !== -1){
+        // 直接「エナジー」を生まないスキル：直接入力／エナジーチャージM倍率／度外視の3択（tool.htmlの「入替候補」機能と同方式）
+        var mmode = cfg.mewMode || 'multiplier';
+        var mmodeTri = [['direct','直接入力'],['multiplier','倍率'],['ignore','度外視']].map(function(pair){
+          return '<label><input type="radio" name="'+prefix+'-mewmode" data-mewmode="'+prefix+'" value="'+pair[0]+'" '+(mmode===pair[0]?'checked':'')+'><span>'+pair[1]+'</span></label>';
+        }).join('');
+        var modeField = '<div class="field"><span class="mini-label">計算方式</span><div class="tri">'+mmodeTri+'</div></div>';
+        var modeInputField = '';
+        if (mmode === 'multiplier'){
+          var mlv2 = cfg.skillLevel || 7;
+          var defaultMult = MEW_3MODE_DEFAULT_MULTIPLIER[mainSkill] || 1.0;
+          var mult = (cfg.mewModeMultiplier != null && cfg.mewModeMultiplier !== '') ? cfg.mewModeMultiplier : defaultMult;
+          modeInputField =
+            '<div class="field"><label for="'+prefix+'-skilllevel">スキルLv（エナジーチャージM基準）</label>'+
+              '<select id="'+prefix+'-skilllevel" data-field="skillLevel" data-prefix="'+prefix+'">'+
+              [1,2,3,4,5,6,7].map(function(l){return '<option value="'+l+'" '+(mlv2===l?'selected':'')+'>Lv'+l+'（'+ENERGY_CHARGE_M[l]+'）</option>';}).join('')+
+              '</select></div>'+
+            '<div class="field"><label for="'+prefix+'-mult">倍率</label>'+
+              '<input type="number" step="0.1" id="'+prefix+'-mult" data-field="mewModeMultiplier" data-prefix="'+prefix+'" value="'+mult+'"></div>';
+        } else if (mmode === 'direct'){
+          modeInputField = '<div class="field"><label for="'+prefix+'-eps">スキル1回あたりエナジー（直接入力・デフォルト'+ENERGY_CHARGE_M[7]+'＝エナチャMスキレベ7相当）</label>'+
+            '<input type="number" step="1" id="'+prefix+'-eps" data-field="energyPerSkill" data-prefix="'+prefix+'" value="'+cfg.energyPerSkill+'"></div>';
+        } else {
+          modeInputField = '<div class="field"><label>スキル1回あたりエナジー</label><input type="text" value="0（度外視）" disabled></div>';
+        }
+        var mmodePreview = '<p class="note" style="margin-top:4px;">現在の設定での1回あたりエナジー：<b>'+fmtInt(computeMew3ModeEnergy(cfg))+'</b></p>';
+        energyInputHtml = modeField + modeInputField + mmodePreview;
+      } else {
+        energyInputHtml = '<div class="field"><label for="'+prefix+'-eps">スキル1回あたりエナジー（直接入力）</label>'+
+          '<input type="number" step="1" id="'+prefix+'-eps" data-field="energyPerSkill" data-prefix="'+prefix+'" value="'+cfg.energyPerSkill+'"></div>';
+      }
+      skillEnergyField = mainSkillSelect + energyInputHtml;
+    } else if (skillKind === 'zero'){
+      skillEnergyField = '<div class="field"><label>スキル1回あたりエナジー</label><input type="text" value="'+(zeroLabel||'0（直接エナジーなし）')+'" disabled></div>';
+    } else if (skillKind === 'externalZone'){
+      // ミュウツーのサイコブレイクはこの欄では扱わず、下の「きのみゾーン」設定（開始時ゾーン期待値・成長率・スキルLv）で別枠計算する
+      skillEnergyField = '';
+    } else if (skillKind === 'energyChargeM'){
+      skillEnergyField = '<div class="field"><label for="'+prefix+'-skilllevel">スキルLv（エナジーチャージM）</label>'+
+        '<select id="'+prefix+'-skilllevel" data-field="skillLevel" data-prefix="'+prefix+'">'+
+        [1,2,3,4,5,6,7].map(function(l){return '<option value="'+l+'" '+(cfg.skillLevel===l?'selected':'')+'>Lv'+l+'（'+ENERGY_CHARGE_M[l]+'）</option>';}).join('')+
+        '</select></div>';
+    } else if (skillKind === 'mimicAuto'){
+      // ものまね：コピー先の効果量を参照する際、バリヤード自身のこのスキルLv(1〜6)が適用される（下の注記に内訳を表示）
+      var mimicLvl = cfg.skillLevel || 6;
+      if (mimicLvl < 1 || mimicLvl > 6) mimicLvl = 6;
+      skillEnergyField = '<div class="field"><label for="'+prefix+'-skilllevel">スキルLv（ものまね・コピー時に適用）</label>'+
+        '<select id="'+prefix+'-skilllevel" data-field="skillLevel" data-prefix="'+prefix+'">'+
+        [1,2,3,4,5,6].map(function(l){return '<option value="'+l+'" '+(mimicLvl===l?'selected':'')+'>Lv'+l+'</option>';}).join('')+
+        '</select></div>'+
+        '<div class="field"><label>スキル1回あたりエナジー</label><input type="text" value="自動計算（下の内訳を参照）" disabled></div>';
+    } else {
+      skillEnergyField = '<div class="field"><label for="'+prefix+'-eps">スキル1回あたりエナジー（直接入力）</label>'+
+        '<input type="number" step="1" id="'+prefix+'-eps" data-field="energyPerSkill" data-prefix="'+prefix+'" value="'+cfg.energyPerSkill+'"></div>';
+    }
+
+    var otebonusTri = [['on','あり'],['off','なし']].map(function(pair){
+      var v=pair[0], lab=pair[1];
+      var isOn = (v==='on') === !!cfg.otebonus;
+      return '<label><input type="radio" name="'+prefix+'-otebonus" value="'+v+'" '+(isOn?'checked':'')+'><span>'+lab+'</span></label>';
+    }).join('');
+    var otebonusField = '<div class="field"><span class="mini-label">おてつだいボーナス</span><div class="tri" data-tri="otebonus" data-prefix="'+prefix+'">'+otebonusTri+'</div></div>';
+
+    return (
+      '<div class="field-row">'+
+        '<div class="field"><label for="'+prefix+'-level">レベル</label><input type="number" id="'+prefix+'-level" data-field="level" data-prefix="'+prefix+'" value="'+cfg.level+'" min="1" max="70"></div>'+
+        otebonusField+
+        skillEnergyField+
+      '</div>'+
+      '<div class="subgrid">'+
+        '<div><span class="mini-label">性格：おてスピ</span><div class="tri" data-tri="spd" data-prefix="'+prefix+'">'+speedTri+'</div></div>'+
+        '<div><span class="mini-label">性格：スキル確率</span><div class="tri" data-tri="skl" data-prefix="'+prefix+'">'+skillTri+'</div></div>'+
+        '<div><span class="mini-label">性格：食材確率</span><div class="tri" data-tri="food" data-prefix="'+prefix+'">'+foodTri+'</div></div>'+
+      '</div>'+
+      '<div class="chip-row" style="margin-top:8px;">'+
+        chip(prefix,'speedM',cfg.speedM,'おてスピM (+14%)')+
+        chip(prefix,'speedS',cfg.speedS,'おてスピS (+7%)')+
+        chip(prefix,'skillM',cfg.skillM,'スキル確率M (×1.36)')+
+        chip(prefix,'skillS',cfg.skillS,'スキル確率S (×1.18)')+
+        chip(prefix,'foodM',cfg.foodM,'食材確率M (×1.36)')+
+        chip(prefix,'foodS',cfg.foodS,'食材確率S (×1.18)')+
+        chip(prefix,'berryS',cfg.berryS,'きのみの数S (+1個)')+
+      '</div>'
+    );
+  }
+  function chip(prefix, field, checked, label){
+    return '<label class="chip-toggle"><input type="checkbox" data-field="'+field+'" data-prefix="'+prefix+'" '+(checked?'checked':'')+'><span>'+label+'</span></label>';
+  }
+  // 睡眠中の所持数消費計算に使う「実際にどの食材候補を持っているか」の選択UI。idleAllDay（きのみ得意）の3体はfoodSlotsを持たないため何も出さない
+  function foodSlotFieldsHtml(prefix, cfg, db){
+    if (!db.foodSlots) return '';
+    function optsFor(tier, curVal){
+      var cur = curVal || db.foodSlots[tier][0].label;
+      return db.foodSlots[tier].map(function(s){
+        return '<option value="'+s.label+'" '+(cur===s.label?'selected':'')+'>'+s.label+'：'+s.name+' ×'+s.count+'</option>';
+      }).join('');
+    }
+    // Lv1候補が複数ある場合のみ選択UIを出す（ミュウのみ7候補・他の8体は1候補固定なので選択不要）
+    var lv1Field = db.foodSlots.lv1.length > 1
+      ? '<div class="field"><label for="'+prefix+'-foodlv1">食材候補（第1食材）</label>'+
+        '<select id="'+prefix+'-foodlv1" data-field="foodLv1" data-prefix="'+prefix+'">'+optsFor('lv1', cfg.foodLv1)+'</select></div>'
+      : '';
+    // Lv60で「食材なし」を選べるポケモン（今のところミュウのみ）は、候補の末尾に食材なしオプションを追加する。
+    // 未選択時のデフォルトも「食材なし」にする（きのみ得意でない個体のLv60は解放されていないことが多いため）
+    var lv60cur = cfg.foodLv60 || (db.foodSlots.lv60AllowNone ? 'none' : db.foodSlots.lv60[0].label);
+    var lv60opts = optsFor('lv60', lv60cur) +
+      (db.foodSlots.lv60AllowNone ? '<option value="none" '+(lv60cur==='none'?'selected':'')+'>食材なし（Lv60で第3食材が解放されていない個体）</option>' : '');
+    return '<div class="field-row">'+
+      lv1Field+
+      '<div class="field"><label for="'+prefix+'-foodlv30">食材候補（第2食材）</label>'+
+        '<select id="'+prefix+'-foodlv30" data-field="foodLv30" data-prefix="'+prefix+'">'+optsFor('lv30', cfg.foodLv30)+'</select></div>'+
+      '<div class="field"><label for="'+prefix+'-foodlv60">食材候補（第3食材）</label>'+
+        '<select id="'+prefix+'-foodlv60" data-field="foodLv60" data-prefix="'+prefix+'">'+lv60opts+'</select></div>'+
+    '</div>';
+  }
+  // 最大所持数に上乗せされるサブスキル（所持数アップS/M/L）とおやすみリボンの設定UI。foodSlotsを持たない3体（きのみ得意）は所持数キャップ自体を使わないため出さない
+  function capacityBonusFieldsHtml(prefix, cfg, db){
+    if (!db.foodSlots) return '';
+    var ribbonVal = cfg.sleepRibbon || 0;
+    var ribbonOpts = [[0,'なし'],[1,'200時間（+1）'],[3,'500時間（+3）'],[6,'1,000時間（+6）'],[8,'2,000時間（+8）']].map(function(pair){
+      return '<option value="'+pair[0]+'" '+(Number(ribbonVal)===pair[0]?'selected':'')+'>'+pair[1]+'</option>';
+    }).join('');
+    return '<div class="field-row" style="margin-top:8px;">'+
+      '<div class="field"><label for="'+prefix+'-sleepribbon">おやすみリボン</label>'+
+        '<select id="'+prefix+'-sleepribbon" data-field="sleepRibbon" data-prefix="'+prefix+'">'+ribbonOpts+'</select></div>'+
+    '</div>'+
+    '<div class="chip-row" style="margin-top:6px;">'+
+      chip(prefix,'capacityS',cfg.capacityS,'所持数アップS (+6)')+
+      chip(prefix,'capacityM',cfg.capacityM,'所持数アップM (+12)')+
+      chip(prefix,'capacityL',cfg.capacityL,'所持数アップL (+18)')+
+    '</div>';
+  }
+  function resultStripHtml(r){
+    var sleepNote = '';
+    if (r.idleAllDay){
+      sleepNote = '<div class="note" style="margin-top:6px;">きのみ得意のため、睡眠設定に関わらず終日「いつの間に育成」（食材確率0%・スキル確率0%・きのみ確率100%、所持数キャップなし）として計算しています。</div>';
+    }
+    var capacityFillItem = (r.capacityFillMinutes != null && isFinite(r.capacityFillMinutes))
+      ? '<div class="item"><span class="k">所持数が埋まるまで（平均）</span><span class="v">'+formatDuration(r.capacityFillMinutes)+'（約'+r.capacityFillHelps.toFixed(1)+'回）</span></div>'
+      : '';
+    // サブスキル・おやすみリボン・イベント・EX補正・CTを全部含めた最終的な最大所持数。計算ミス防止のため睡眠設定のON/OFFに関わらず常時表示する
+    var maxCapacityItem = (r.sleep && r.sleep.capacity != null)
+      ? '<div class="item"><span class="k">最大所持数（合計）</span><span class="v">'+r.sleep.capacity+'個</span></div>'
+      : '';
+    // 食材エナジー/日：ミュウツー・クレセリア・ミュウのみ表示（本人確認済み・2026/09/15）。このエナジーは
+    // 「きのみゾーン」の補正対象外（下のゾーン設定・比較サマリー側でも(1+zl/100)を掛けずに合算している）。
+    var foodEnergyItem = (r.db && r.db.foodEnergyTracked)
+      ? '<div class="item"><span class="k">食材エナジー/日</span><span class="v">'+fmtInt(r.foodEnergyDay||0)+'（ゾーン補正対象外）</span></div>'
+      : '';
+    // スキルエナジーがゾーン補正対象外の場合（ミュウのきのみバースト・おてつだいサポートS以外のメインスキル）は注記を付ける
+    // （本人確認済み・2026/09/15：エスパーきのみ相当以外のメインスキルはゾーン補正の対象にすべきでない）。
+    var skillEnergySuffix = (r.skillZoneEligible === false && r.skillEnergyDay > 0) ? '（ゾーン補正対象外）' : '';
+    // 重要：resultStripHtml()の呼び出し元は戻り値をouterHTMLに丸ごと代入して差し替える方式を取っている。
+    // 以前は「<div class="result-strip">...</div>」＋「sleepNote（別のdiv）」という兄弟2要素を返していたため、
+    // outerHTML代入で対象1要素が新しい2要素に置き換わってしまい、次回の再描画ではdata-result属性を持つ
+    // .result-stripしか再度取得・差し替えできず、sleepNote側の古いdivがDOM上に孤児として残り続けて再描画のたびに
+    // 蓄積する不具合があった（本人確認済み・2026/09/16：同じ注記テキストが再描画のたびに増殖するバグ）。
+    // 1つの外側divで丸ごと包むことで、outerHTML代入が常に「1要素→1要素」の置き換えになり、孤児が残らないようにする。
+    return '<div class="result-strip-block">'+
+      '<div class="result-strip">'+
+        '<div class="item"><span class="k">おてスピ</span><span class="v">'+r.finalSpeed.toFixed(1)+'秒</span></div>'+
+        '<div class="item"><span class="k">おてつだい/日</span><span class="v">'+r.helpCountPerDay.toFixed(2)+'回</span></div>'+
+        '<div class="item"><span class="k">スキル確率</span><span class="v">'+(r.skillProb*100).toFixed(2)+'%</span></div>'+
+        '<div class="item"><span class="k">スキル発動/日</span><span class="v">'+r.skillCountDay.toFixed(2)+'回</span></div>'+
+        maxCapacityItem+
+        capacityFillItem+
+        '<div class="item"><span class="k">きのみエナジー/日</span><span class="v">'+fmtInt(r.berryEnergyDay)+'</span></div>'+
+        '<div class="item"><span class="k">スキルエナジー/日</span><span class="v">'+fmtInt(r.skillEnergyDay)+skillEnergySuffix+'</span></div>'+
+        foodEnergyItem+
+        '<div class="item"><span class="k">合計/日</span><span class="v">'+fmtInt(r.totalDay)+'</span></div>'+
+        '<div class="item"><span class="k">合計/分</span><span class="v">'+r.perMin.toFixed(2)+'</span></div>'+
+      '</div>'+sleepNote+
+    '</div>';
+  }
+  function bindMemberInputs(container){
+    container.querySelectorAll('[data-field][data-prefix]').forEach(function(el){
+      var evt = (el.type==='checkbox' || el.tagName==='SELECT') ? 'change' : 'input';
+      el.addEventListener(evt, function(){
+        var prefix = el.getAttribute('data-prefix');
+        var field = el.getAttribute('data-field');
+        var cfg = resolveCfgByPrefix(prefix);
+        if (!cfg) return;
+        if (el.type==='checkbox') cfg[field] = el.checked;
+        else if (field==='skillLevel' || field==='level' || field==='energyPerSkill' || field==='moonlightSkillLevel' || field==='mewModeMultiplier' || field==='sleepRibbon') cfg[field] = parseFloat(el.value)||0;
+        else cfg[field] = el.value;
+        saveState(); renderAll();
+      });
+    });
+    container.querySelectorAll('.tri input[type="radio"]').forEach(function(el){
+      el.addEventListener('change', function(){
+        var prefix = el.closest('[data-prefix]').getAttribute('data-prefix');
+        var triKey = el.closest('[data-tri]').getAttribute('data-tri');
+        var cfg = resolveCfgByPrefix(prefix);
+        if (!cfg) return;
+        if (triKey === 'otebonus') cfg.otebonus = (el.value === 'on');
+        else cfg[triKey] = el.value;
+        saveState(); renderAll();
+      });
+    });
+  }
+  function resolveCfgByPrefix(prefix){
+    var targetEntry = state.switchTargets.find(function(t){ return t.id===prefix; });
+    if (targetEntry) return targetEntry.cfg;
+    var supportEntry = state.support.find(function(e){ return e.id===prefix; });
+    if (supportEntry) return supportEntry.cfg;
+    var build = state.mewtwoBuilds.find(function(b){return b.id===prefix;});
+    return build || null;
+  }
+
+  // ---------- field settings ----------
+  var fSelect=document.getElementById('f-select'), fCtick=document.getElementById('f-ctick'),
+      fWkBox=document.getElementById('f-wakakusa-box'), fWkMago=document.getElementById('f-wk-mago'),
+      fLapisNote=document.getElementById('f-lapis-note'),
+      fExBox=document.getElementById('f-ex-box'), fExMain=document.getElementById('f-ex-main'),
+      fExSub1=document.getElementById('f-ex-sub1'), fExSub2=document.getElementById('f-ex-sub2'),
+      fExOther=document.getElementById('f-ex-other'), fExDesc=document.getElementById('f-ex-desc');
+
+  function currentExCfg(){
+    return state.field.select === 'wakakusa_ex' ? state.field.wakakusaEx : state.field.cyanEx;
+  }
+  function fillFieldInputs(){
+    fSelect.value = state.field.select;
+    fCtick.value = state.field.campTicket ? "1":"0";
+    fWkMago.checked = state.field.wakakusa.mago;
+
+    var isWk = state.field.select === 'wakakusa';
+    var isLapis = state.field.select === 'lapis';
+    var isEx = state.field.select === 'wakakusa_ex' || state.field.select === 'cyan_ex';
+    fWkBox.style.display = isWk ? 'flex' : 'none';
+    fLapisNote.style.display = isLapis ? 'block' : 'none';
+    fExBox.style.display = isEx ? 'block' : 'none';
+
+    if (isEx){
+      var cfg = currentExCfg();
+      fExMain.value = cfg.main; fExSub1.value = cfg.sub1; fExSub2.value = cfg.sub2; fExOther.value = cfg.exOther;
+      fExDesc.textContent = (state.field.select === 'wakakusa_ex'
+        ? 'メイン一致：おてスピ10%短縮／サブ一致：補正なし／（何か選択していて）不一致：おてスピ15%増加'
+        : 'メイン一致：おてスピ20%短縮／サブ一致：補正なし／（何か選択していて）不一致：おてスピ35%増加'
+      ) + '。メイン一致時はメインスキルLv+1も付与（上限Lv7、影響するのはエナジーチャージM系のみ）。';
+    }
+  }
+  fSelect.addEventListener('change',function(){ state.field.select = fSelect.value; saveState(); fillFieldInputs(); renderAll(); });
+  fCtick.addEventListener('change',function(){ state.field.campTicket = fCtick.value==="1"; saveState(); renderAll(); });
+  fWkMago.addEventListener('change',function(){ state.field.wakakusa.mago = fWkMago.checked; saveState(); renderAll(); });
+  [fExMain,fExSub1,fExSub2,fExOther].forEach(function(el){
+    el.addEventListener('change', function(){
+      var cfg = currentExCfg();
+      cfg.main = fExMain.value; cfg.sub1 = fExSub1.value; cfg.sub2 = fExSub2.value; cfg.exOther = fExOther.value;
+      saveState(); fillFieldInputs(); renderAll();
+    });
+  });
+
+  // ---------- support members（4枠固定・各枠は既存6体＋その他のポケモンから自由選択） ----------
+  var supportContainer = document.getElementById('support-container');
+
+  function supportSelectOptionsHtml(selectedKey){
+    var pool = SUPPORT_POOL.slice();
+    // 以前の保存データでミュウツー/クレセリアが選ばれていた場合も選択肢として残す（表示崩れ防止）
+    if (selectedKey !== 'other' && pool.indexOf(selectedKey) === -1 && POKEMON_DB[selectedKey]) pool.push(selectedKey);
+    var opts = pool.map(function(k){
+      return '<option value="'+k+'" '+(selectedKey===k?'selected':'')+'>'+POKEMON_DB[k].name+'</option>';
+    }).join('');
+    opts += '<option value="other" '+(selectedKey==='other'?'selected':'')+'>その他のポケモン</option>';
+    return opts;
+  }
+
+  function renderSupportInputs(){
+    supportContainer.innerHTML = '';
+    state.support.forEach(function(entry){
+      var card = document.createElement('div');
+      card.className = 'member-card';
+      card.setAttribute('data-prefix', entry.id);
+      var selectHtml = '<select class="support-select" data-support-id="'+entry.id+'" style="font-family:\'Fraunces\',serif;font-weight:600;font-size:1rem;border:none;background:transparent;color:var(--ink);border-bottom:1px dashed var(--border);padding:2px 0;">'+supportSelectOptionsHtml(entry.key)+'</select>';
+      if (entry.key === 'other'){
+        var otherType = entry.cfg.type || '';
+        var otherLevel = entry.cfg.level || 70;
+        card.innerHTML =
+          '<div class="member-head">'+
+            '<div class="pname">'+selectHtml+'</div>'+
+          '</div>'+
+          '<div class="field-row">'+
+            '<div class="field"><label for="'+entry.id+'-othertype">タイプ</label>'+
+              '<select id="'+entry.id+'-othertype" data-field="type" data-prefix="'+entry.id+'">'+
+                '<option value="" '+(otherType===''?'selected':'')+'>不明・未選択</option>'+
+                TYPE_ORDER.map(function(tp){
+                  return '<option value="'+tp+'" '+(otherType===tp?'selected':'')+'>'+tp+'（'+TYPE_TO_BERRY[tp]+'）</option>';
+                }).join('')+
+              '</select></div>'+
+            '<div class="field"><label for="'+entry.id+'-otherlevel">レベル</label>'+
+              '<input type="number" id="'+entry.id+'-otherlevel" data-field="level" data-prefix="'+entry.id+'" value="'+otherLevel+'" min="1" max="70"></div>'+
+            '<div class="field" style="max-width:220px;"><span class="mini-label">おてつだいボーナス</span><div class="tri" data-tri="otebonus" data-prefix="'+entry.id+'">'+
+              '<label><input type="radio" name="'+entry.id+'-otebonus" value="on" '+(entry.cfg.otebonus?'checked':'')+'><span>あり</span></label>'+
+              '<label><input type="radio" name="'+entry.id+'-otebonus" value="off" '+(entry.cfg.otebonus?'':'checked')+'><span>なし</span></label>'+
+            '</div></div>'+
+          '</div>'+
+          '<p class="note" style="margin-top:8px;">この枠自身のきのみ/スキルエナジーは計算に含まないが、おてつだいボーナスはチーム全体のおてぼ枚数に反映される。タイプを指定すると、そのタイプの好物きのみでみかづきのいのり受け取り分のエナジーが加算される。</p>';
+      } else {
+        var db = POKEMON_DB[entry.key];
+        card.innerHTML =
+          '<div class="member-head">'+
+            '<div class="pname">'+selectHtml+'<span class="ptype">'+db.type+' ・ '+db.specialty+' ・ '+db.berryName+'</span></div>'+
+          '</div>'+
+          memberSettingsHtml(entry.id, entry.cfg, SKILL_KIND[entry.key], false, false, ZERO_SKILL_LABEL[entry.key])+
+          foodSlotFieldsHtml(entry.id, entry.cfg, db)+
+          capacityBonusFieldsHtml(entry.id, entry.cfg, db)+
+          (entry.key==='mrmime' ? '<div class="note" data-mrmime-note="'+entry.id+'" style="margin-top:8px;"></div>' : '')+
+          '<div class="result-strip-block" data-result="'+entry.id+'"></div>';
+      }
+      supportContainer.appendChild(card);
+    });
+    bindMemberInputs(supportContainer);
+    bindSupportControls();
+  }
+
+  function bindSupportControls(){
+    supportContainer.querySelectorAll('.support-select').forEach(function(sel){
+      sel.addEventListener('change', function(){
+        var id = sel.getAttribute('data-support-id');
+        var entry = state.support.find(function(e){return e.id===id;});
+        if (!entry) return;
+        var newKey = sel.value;
+        entry.key = newKey;
+        entry.cfg = (newKey === 'other') ? { otebonus:false, type:'', level:70 } : defaultMemberCfg({});
+        saveState(); renderSupportInputs(); renderAll();
+      });
+    });
+  }
+
+  // ---------- mewtwo builds ----------
+  var mewtwoContainer = document.getElementById('mewtwo-container');
+  var addMewtwoBtn = document.getElementById('add-mewtwo');
+  function renderMewtwoInputs(){
+    mewtwoContainer.innerHTML = '';
+    state.mewtwoBuilds.forEach(function(b){
+      var db = POKEMON_DB.mewtwo;
+      var card = document.createElement('div');
+      card.className = 'member-card';
+      card.setAttribute('data-prefix', b.id);
+      card.innerHTML =
+        '<div class="member-head">'+
+          '<div class="pname"><input type="text" data-namefield="'+b.id+'" value="'+escapeHtml(b.name)+'" style="font-family:\'Fraunces\',serif;font-weight:600;font-size:1rem;border:none;background:transparent;color:var(--ink);border-bottom:1px dashed var(--border);padding:2px 0;"><span class="ptype">'+db.type+' ・ '+db.berryName+'</span></div>'+
+          (state.mewtwoBuilds.length>1 ? '<button type="button" class="btn-danger-ghost" data-remove-build="'+b.id+'">削除</button>' : '')+
+        '</div>'+
+        memberSettingsHtml(b.id, b, 'externalZone')+ // mewtwoのスキルエナジーは下のゾーン設定で別枠計算するので、ここには汎用のスキルエナジー欄を出さない
+        foodSlotFieldsHtml(b.id, b, db)+
+        capacityBonusFieldsHtml(b.id, b, db)+
+        '<div class="field-row" style="margin-top:10px;">'+
+          '<div class="field"><label>開始時ゾーン期待値(%)</label><input type="text" data-zonei-display="'+b.id+'" value="" disabled></div>'+
+          '<div class="field"><label>ゾーン成長率(%/24h)</label><input type="text" data-growth-display="'+b.id+'" value="" disabled></div>'+
+          '<div class="field"><label for="'+b.id+'-skilllevel-zone">スキルLv（エナジーチャージ・ゾーン増分）</label>'+
+            '<select id="'+b.id+'-skilllevel-zone" data-zonefield="skillLevel" data-prefix="'+b.id+'">'+
+            [1,2,3,4,5,6].map(function(l){return '<option value="'+l+'" '+((b.zone.skillLevel||6)===l?'selected':'')+'>Lv'+l+'（'+MEWTWO_ENERGY_CHARGE[l]+' ／ +'+MEWTWO_ZONE_STEP[l]+'%）</option>';}).join('')+
+            '</select></div>'+
+        '</div>'+
+        '<div class="result-strip-block" data-result="'+b.id+'"></div>';
+      mewtwoContainer.appendChild(card);
+    });
+    bindMemberInputs(mewtwoContainer);
+    mewtwoContainer.querySelectorAll('[data-zonefield]').forEach(function(el){
+      var evt = el.tagName==='SELECT' ? 'change' : 'input';
+      el.addEventListener(evt, function(){
+        var b = state.mewtwoBuilds.find(function(x){return x.id===el.getAttribute('data-prefix');});
+        if(!b) return;
+        b.zone[el.getAttribute('data-zonefield')] = parseFloat(el.value)||0;
+        saveState(); renderAll();
+      });
+    });
+    mewtwoContainer.querySelectorAll('[data-namefield]').forEach(function(el){
+      el.addEventListener('input', function(){
+        var b = state.mewtwoBuilds.find(function(x){return x.id===el.getAttribute('data-namefield');});
+        if(!b) return; b.name = el.value; saveState(); renderSummaryNamesOnly(); renderResults();
+      });
+    });
+    mewtwoContainer.querySelectorAll('[data-remove-build]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        if (state.mewtwoBuilds.length<=1) return;
+        var id = btn.getAttribute('data-remove-build');
+        state.mewtwoBuilds = state.mewtwoBuilds.filter(function(x){return x.id!==id;});
+        saveState(); renderMewtwoInputs(); renderAll();
+      });
+    });
+  }
+  addMewtwoBtn.addEventListener('click', function(){
+    buildSeq++;
+    state.mewtwoBuilds.push(defaultMewtwoBuildCfg({ id:'b'+buildSeq+'_'+Date.now(), name:'新規設定' }));
+    saveState(); renderMewtwoInputs(); renderAll();
+  });
+
+  // ---------- switch targets（切替先: 複数比較可） ----------
+  var targetContainer = document.getElementById('target-container');
+  var addTargetBtn = document.getElementById('add-target');
+  var targetSeq = state.switchTargets.length;
+
+  function targetSelectOptionsHtml(selectedKey){
+    var pool = TARGET_POOL.slice();
+    if (pool.indexOf(selectedKey) === -1 && POKEMON_DB[selectedKey]) pool.push(selectedKey);
+    return pool.map(function(k){
+      return '<option value="'+k+'" '+(selectedKey===k?'selected':'')+'>'+POKEMON_DB[k].name+'</option>';
+    }).join('');
+  }
+  function renderTargetInputs(){
+    targetContainer.innerHTML = '';
+    state.switchTargets.forEach(function(t){
+      var db = POKEMON_DB[t.key];
+      var card = document.createElement('div');
+      card.className = 'member-card';
+      card.setAttribute('data-prefix', t.id);
+      var selectHtml = '<select class="target-select" data-target-id="'+t.id+'" style="font-family:\'IBM Plex Mono\',monospace;font-size:.72rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--ink);padding:3px 6px;">'+targetSelectOptionsHtml(t.key)+'</select>';
+      card.innerHTML =
+        '<div class="member-head">'+
+          '<div class="pname"><input type="text" data-namefield-target="'+t.id+'" value="'+escapeHtml(t.name)+'" style="font-family:\'Fraunces\',serif;font-weight:600;font-size:1rem;border:none;background:transparent;color:var(--ink);border-bottom:1px dashed var(--border);padding:2px 0;">'+selectHtml+'<span class="ptype">'+db.type+' ・ '+db.specialty+' ・ '+db.berryName+'</span></div>'+
+          (state.switchTargets.length>1 ? '<button type="button" class="btn-danger-ghost" data-remove-target="'+t.id+'">削除</button>' : '')+
+        '</div>'+
+        memberSettingsHtml(t.id, t.cfg, resolveSkillKind(t.key, t.cfg), t.key==='cresselia', t.key==='mew')+
+        foodSlotFieldsHtml(t.id, t.cfg, db)+
+        capacityBonusFieldsHtml(t.id, t.cfg, db)+
+        (t.key==='cresselia' ? '<div class="note" data-moonlight-note="'+t.id+'" style="margin-top:8px;"></div>' : '')+
+        (t.key==='mew' ? '<div class="note" data-mewburst-note="'+t.id+'" style="margin-top:8px;"></div>' : '')+
+        (t.key==='mew' ? '<div class="note" data-mewhelpsupport-note="'+t.id+'" style="margin-top:8px;"></div>' : '')+
+        '<div class="result-strip-block" data-result="'+t.id+'"></div>';
+      targetContainer.appendChild(card);
+    });
+    bindMemberInputs(targetContainer);
+    targetContainer.querySelectorAll('[data-namefield-target]').forEach(function(el){
+      el.addEventListener('input', function(){
+        var t = state.switchTargets.find(function(x){return x.id===el.getAttribute('data-namefield-target');});
+        if(!t) return; t.name = el.value; saveState(); renderResults();
+      });
+    });
+    targetContainer.querySelectorAll('.target-select').forEach(function(sel){
+      sel.addEventListener('change', function(){
+        var id = sel.getAttribute('data-target-id');
+        var t = state.switchTargets.find(function(x){return x.id===id;});
+        if (!t) return;
+        t.key = sel.value;
+        t.cfg = defaultMemberCfg(sel.value === 'mew' ? { mewMainSkill:'metronome', mewMode:'multiplier', mewModeMultiplier:1.0 } : {});
+        saveState(); renderTargetInputs(); renderAll();
+      });
+    });
+    targetContainer.querySelectorAll('[data-mewskill]').forEach(function(sel){
+      sel.addEventListener('change', function(){
+        var id = sel.getAttribute('data-mewskill');
+        var t = state.switchTargets.find(function(x){return x.id===id;});
+        if (!t) return;
+        t.cfg.mewMainSkill = sel.value;
+        if (sel.value === 'berryBurst'){
+          if (!t.cfg.skillLevel || t.cfg.skillLevel < 1 || t.cfg.skillLevel > 6) t.cfg.skillLevel = 6;
+        } else if (sel.value === 'helpSupport_S'){
+          if (!t.cfg.skillLevel || t.cfg.skillLevel < 1 || t.cfg.skillLevel > 7) t.cfg.skillLevel = 7;
+        } else if (MEW_3MODE_SKILLS.indexOf(sel.value) !== -1){
+          t.cfg.mewMode = 'multiplier';
+          t.cfg.mewModeMultiplier = MEW_3MODE_DEFAULT_MULTIPLIER[sel.value] || 1.0;
+        }
+        saveState(); renderTargetInputs(); renderAll();
+      });
+    });
+    targetContainer.querySelectorAll('[data-mewmode]').forEach(function(el){
+      el.addEventListener('change', function(){
+        var id = el.getAttribute('data-mewmode');
+        var t = state.switchTargets.find(function(x){return x.id===id;});
+        if (!t) return;
+        t.cfg.mewMode = el.value;
+        // 直接入力に切り替えた際、初期値が0のままだと分かりにくいので、
+        // エナジーチャージMのLv7相当値を初期値として入れておく（倍率・スキルLvの現在値には依存しない固定デフォルト）
+        if (el.value === 'direct' && !t.cfg.energyPerSkill){
+          t.cfg.energyPerSkill = ENERGY_CHARGE_M[7];
+        }
+        saveState(); renderTargetInputs(); renderAll();
+      });
+    });
+    targetContainer.querySelectorAll('[data-remove-target]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        if (state.switchTargets.length<=1) return;
+        var id = btn.getAttribute('data-remove-target');
+        state.switchTargets = state.switchTargets.filter(function(x){return x.id!==id;});
+        saveState(); renderTargetInputs(); renderAll();
+      });
+    });
+  }
+  addTargetBtn.addEventListener('click', function(){
+    targetSeq++;
+    state.switchTargets.push({ id:'t'+targetSeq+'_'+Date.now(), name:'新規切替先', key:'cresselia', cfg: defaultMemberCfg({}) });
+    saveState(); renderTargetInputs(); renderAll();
+  });
+
+  // ---------- common settings ----------
+  var windowEl=document.getElementById('window'),
+      startDowEl=document.getElementById('start-dow'), startTimeEl=document.getElementById('start-time'),
+      endDowEl=document.getElementById('end-dow'), endTimeEl=document.getElementById('end-time'),
+      sleepEnabledEls=document.querySelectorAll('input[name="sleep-enabled"]'), sleepStartEl=document.getElementById('sleep-start'), sleepEndEl=document.getElementById('sleep-end'),
+      eventCapacityEls=document.querySelectorAll('input[name="event-capacity"]'),
+      ecTypeRestrictEls=document.querySelectorAll('input[name="ec-type-restrict"]'), ecSpecialtyRestrictEls=document.querySelectorAll('input[name="ec-specialty-restrict"]'),
+      ecTypeBoxEl=document.getElementById('ec-type-box'), ecSpecialtyBoxEl=document.getElementById('ec-specialty-box'),
+      ecTypeChipsEl=document.getElementById('ec-type-chips'),
+      ecSpecialtyEls=document.querySelectorAll('.ec-specialty-check'),
+      ecSkillEls=document.querySelectorAll('input[name="ec-skill"]'), ecSkillCustomEl=document.getElementById('ec-skill-custom'),
+      ecBerryCountEls=document.querySelectorAll('input[name="ec-berrycount"]'),
+      ecFoodCountEls=document.querySelectorAll('input[name="ec-foodcount"]'),
+      ecBerryBurstEls=document.querySelectorAll('input[name="ec-berryburst"]'), ecBerryBurstCustomEl=document.getElementById('ec-berryburst-custom');
+  // タイプ指定チップはTYPE_ORDER（他のタイプ選択欄と共通の18タイプ）から1回だけ生成する
+  ecTypeChipsEl.innerHTML = TYPE_ORDER.map(function(tp){
+    return '<label class="chip-toggle"><input type="checkbox" class="ec-type-check" value="'+tp+'"><span>'+tp+'</span></label>';
+  }).join('');
+  var ecTypeEls = document.querySelectorAll('.ec-type-check');
+  function fillCommonInputs(){
+    windowEl.value=state.common.window;
+    startDowEl.value=state.start.dow; startTimeEl.value=state.start.time;
+    endDowEl.value=state.end.dow; endTimeEl.value=state.end.time;
+    sleepEnabledEls.forEach(function(el){ el.checked = ((el.value==='1') === !!state.common.sleep.enabled); });
+    sleepStartEl.value=state.common.sleep.start; sleepEndEl.value=state.common.sleep.end;
+    sleepStartEl.disabled = sleepEndEl.disabled = !state.common.sleep.enabled;
+    eventCapacityEls.forEach(function(el){ el.checked = (parseInt(el.value,10) === (parseInt(state.common.eventCapacityBonus,10)||0)); });
+
+    var ec = state.common.eventCorrection;
+    ecTypeRestrictEls.forEach(function(el){ el.checked = (el.value === (ec.typeRestriction ? '1' : '0')); });
+    ecTypeBoxEl.style.display = ec.typeRestriction ? 'block' : 'none';
+    ecSpecialtyRestrictEls.forEach(function(el){ el.checked = (el.value === (ec.specialtyRestriction ? '1' : '0')); });
+    ecSpecialtyBoxEl.style.display = ec.specialtyRestriction ? 'block' : 'none';
+    ecTypeEls.forEach(function(el){ el.checked = ec.types.indexOf(el.value) !== -1; });
+    ecSpecialtyEls.forEach(function(el){ el.checked = ec.specialties.indexOf(el.value) !== -1; });
+    ecSkillEls.forEach(function(el){ el.checked = (el.value === ec.skillMode); });
+    ecSkillCustomEl.value = ec.skillCustom;
+    ecSkillCustomEl.style.display = (ec.skillMode === 'custom') ? 'block' : 'none';
+    ecBerryCountEls.forEach(function(el){ el.checked = (parseInt(el.value,10) === (parseInt(ec.berryCount,10)||0)); });
+    ecFoodCountEls.forEach(function(el){ el.checked = (parseInt(el.value,10) === (parseInt(ec.foodCount,10)||0)); });
+    ecBerryBurstEls.forEach(function(el){ el.checked = (el.value === ec.berryBurstMode); });
+    ecBerryBurstCustomEl.value = ec.berryBurstCustom;
+    ecBerryBurstCustomEl.style.display = (ec.berryBurstMode === 'custom') ? 'block' : 'none';
+  }
+  // 起点・終了（曜日＋時刻）から評価期間（分）を自動再計算して画面に反映する
+  function recomputeWindow(){
+    state.common.window = computeWindowFromEndpoints(state.start, state.end);
+    windowEl.value = state.common.window;
+  }
+  // windowEl（評価期間・分）は自動計算のみ・disabled のため入力リスナーは不要（ゾーン上限%はUI非表示・state.common.capは読み込み時に24へ強制済み）
+  startDowEl.addEventListener('change',function(){ state.start.dow=startDowEl.value; recomputeWindow(); saveState(); renderAll(); });
+  startTimeEl.addEventListener('change',function(){ state.start.time=startTimeEl.value; recomputeWindow(); saveState(); renderAll(); });
+  endDowEl.addEventListener('change',function(){ state.end.dow=endDowEl.value; recomputeWindow(); saveState(); renderAll(); });
+  endTimeEl.addEventListener('change',function(){ state.end.time=endTimeEl.value; recomputeWindow(); saveState(); renderAll(); });
+  sleepEnabledEls.forEach(function(el){ el.addEventListener('change',function(){ if(el.checked){ state.common.sleep.enabled=(el.value==='1'); sleepStartEl.disabled=sleepEndEl.disabled=!state.common.sleep.enabled; saveState(); renderAll(); } }); });
+  sleepStartEl.addEventListener('change',function(){ state.common.sleep.start=sleepStartEl.value; saveState(); renderAll(); });
+  sleepEndEl.addEventListener('change',function(){ state.common.sleep.end=sleepEndEl.value; saveState(); renderAll(); });
+  eventCapacityEls.forEach(function(el){ el.addEventListener('change',function(){ if(el.checked){ state.common.eventCapacityBonus = parseInt(el.value,10)||0; saveState(); renderAll(); } }); });
+
+  ecTypeRestrictEls.forEach(function(el){ el.addEventListener('change',function(){ if(el.checked){ state.common.eventCorrection.typeRestriction=(el.value==='1'); ecTypeBoxEl.style.display=(el.value==='1')?'block':'none'; saveState(); renderAll(); } }); });
+  ecSpecialtyRestrictEls.forEach(function(el){ el.addEventListener('change',function(){ if(el.checked){ state.common.eventCorrection.specialtyRestriction=(el.value==='1'); ecSpecialtyBoxEl.style.display=(el.value==='1')?'block':'none'; saveState(); renderAll(); } }); });
+  ecTypeEls.forEach(function(el){ el.addEventListener('change',function(){
+    var types = state.common.eventCorrection.types;
+    var idx = types.indexOf(el.value);
+    if (el.checked && idx===-1) types.push(el.value);
+    else if (!el.checked && idx!==-1) types.splice(idx,1);
+    saveState(); renderAll();
+  }); });
+  ecSpecialtyEls.forEach(function(el){ el.addEventListener('change',function(){
+    var specs = state.common.eventCorrection.specialties;
+    var idx = specs.indexOf(el.value);
+    if (el.checked && idx===-1) specs.push(el.value);
+    else if (!el.checked && idx!==-1) specs.splice(idx,1);
+    saveState(); renderAll();
+  }); });
+  ecSkillEls.forEach(function(el){ el.addEventListener('change',function(){ if(el.checked){ state.common.eventCorrection.skillMode=el.value; ecSkillCustomEl.style.display=(el.value==='custom')?'block':'none'; saveState(); renderAll(); } }); });
+  ecSkillCustomEl.addEventListener('input',function(){ state.common.eventCorrection.skillCustom=parseFloat(ecSkillCustomEl.value); saveState(); renderAll(); });
+  ecBerryCountEls.forEach(function(el){ el.addEventListener('change',function(){ if(el.checked){ state.common.eventCorrection.berryCount=parseInt(el.value,10)||0; saveState(); renderAll(); } }); });
+  ecFoodCountEls.forEach(function(el){ el.addEventListener('change',function(){ if(el.checked){ state.common.eventCorrection.foodCount=parseInt(el.value,10)||0; saveState(); renderAll(); } }); });
+  ecBerryBurstEls.forEach(function(el){ el.addEventListener('change',function(){ if(el.checked){ state.common.eventCorrection.berryBurstMode=el.value; ecBerryBurstCustomEl.style.display=(el.value==='custom')?'block':'none'; saveState(); renderAll(); } }); });
+  ecBerryBurstCustomEl.addEventListener('input',function(){ state.common.eventCorrection.berryBurstCustom=parseFloat(ecBerryBurstCustomEl.value); saveState(); renderAll(); });
+
+  // ---------- chart ----------
+  function renderChart(build, best, common, windowMin, growth, zoneI){
+    var W=640,H=160,padL=34,padR=12,padT=10,padB=22;
+    var plotW=W-padL-padR, plotH=H-padT-padB;
+    var cap=common.cap;
+    var step = MEWTWO_ZONE_STEP[build.zone.skillLevel] || MEWTWO_ZONE_STEP[6];
+    var growthPerMin=growth/1440;
+    function xAt(t){ return padL+(t/windowMin)*plotW; }
+    function yAt(z){ return padT+plotH-(z/cap)*plotH; }
+    function zoneLevelAt(t){ return Math.min(cap, step*Math.floor((zoneI+growthPerMin*t)/step+1e-9)); }
+    var pts=[]; var boundaries=best.boundaries.slice();
+    if (boundaries[boundaries.length-1]<windowMin) boundaries.push(windowMin);
+    for (var i=0;i<boundaries.length-1;i++){
+      var s=boundaries[i], e=boundaries[i+1];
+      var zl = (s < best.switchTime-1e-6) ? zoneLevelAt((s+e)/2) : best.finalZone;
+      pts.push([s,zl]); pts.push([e,zl]);
+    }
+    var path = pts.map(function(p,idx){ return (idx===0?"M":"L")+xAt(p[0]).toFixed(1)+","+yAt(p[1]).toFixed(1); }).join(" ");
+    var gridY0=yAt(0), gridYcap=yAt(cap), switchX=xAt(best.switchTime);
+    return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+build.name+'のゾーン推移">'+
+      '<line class="gridline" x1="'+padL+'" y1="'+gridY0+'" x2="'+(W-padR)+'" y2="'+gridY0+'"/>'+
+      '<line class="gridline" x1="'+padL+'" y1="'+gridYcap+'" x2="'+(W-padR)+'" y2="'+gridYcap+'"/>'+
+      '<text x="'+(padL-6)+'" y="'+(gridY0+3)+'" text-anchor="end">0%</text>'+
+      '<text x="'+(padL-6)+'" y="'+(gridYcap+3)+'" text-anchor="end">'+cap+'%</text>'+
+      '<line class="switchline" x1="'+switchX.toFixed(1)+'" y1="'+padT+'" x2="'+switchX.toFixed(1)+'" y2="'+(padT+plotH)+'"/>'+
+      '<path class="zoneline" d="'+path+'"/>'+
+      '<circle class="switchdot" cx="'+switchX.toFixed(1)+'" cy="'+yAt(best.finalZone).toFixed(1)+'" r="3.2"/>'+
+      '<text x="'+Math.min(switchX+5, W-padR-58)+'" y="'+(padT+10)+'">切替 '+formatClock(best.switchTime)+'</text>'+
+      '<text x="'+padL+'" y="'+(H-6)+'">'+formatClock(0)+'</text>'+
+      '<text x="'+(W-padR)+'" y="'+(H-6)+'" text-anchor="end">'+formatClock(windowMin)+'</text>'+
+      '</svg>';
+  }
+
+  // ---------- master compute ----------
+  var summaryGrid=document.getElementById('summary-grid');
+  var summaryGridNoSwitch=document.getElementById('summary-grid-noswitch');
+  var resultsContainer=document.getElementById('results-container');
+
+  // チームおてぼ枚数（あり=true の枠の数）。この枚数×5%が「チーム全員」のおてスピに乗る
+  function supportOtebonusCount(){
+    var n=0;
+    state.support.forEach(function(entry){ if (entry.cfg.otebonus) n++; });
+    return n;
+  }
+  // mainContext: 現在アクティブな主力の情報（{type:'cresselia'|'mewBerryBurst', target}）。バリヤードの「ものまね」の
+  // コピー候補判定に使う。省略時（pre-switch＝ミュウツービルドが主力の時など）はnull扱い＝コピー不可/度外視で0になる。
+  function computeSupportTeamPerMin(teamOtebonus, mainContext){
+    // サポート4枠（対象外の'other'枠を除く）は食材エナジー反映対象（mewtwo/cresselia/mew）ではないため、
+    // 常にzonePerMin===perMin・flatPerMin===0になるが、simulate()側に渡す集計は将来の対象拡張にも備えて
+    // zoneTotal/flatTotalを明示的に分けて積算する。
+    var total=0; var zoneTotal=0; var flatTotal=0; var results={}; var count=0;
+    state.support.forEach(function(entry){
+      if (entry.key === 'other') return; // エナジー計算対象外（おてぼはチームおてぼ枚数の集計には加算される）
+      var effCfg = entry.cfg;
+      var mimic = null;
+      if (entry.key === 'mrmime'){
+        mimic = computeMrmimeMimicEnergy(entry, mainContext || null);
+        effCfg = Object.assign({}, entry.cfg, { energyPerSkill: mimic.avg });
+      }
+      var r = calcMemberDaily(entry.key, effCfg, state.field, SKILL_KIND[entry.key], teamOtebonus);
+      if (mimic) r.mimic = mimic;
+      results[entry.id]=r; total += r.perMin; zoneTotal += (r.zonePerMin != null ? r.zonePerMin : r.perMin); flatTotal += (r.flatPerMin || 0); count++;
+    });
+    return { total, zoneTotal, flatTotal, results, count };
+  }
+
+  function renderSummaryNamesOnly(){ /* placeholder to avoid full recompute on name typing before blur; full renderAll still called elsewhere */ }
+
+  function renderAll(){
+    // おてつだいボーナスはチーム全体（5枠）で共有。切替先/切替元(ミュウツー各ビルド)で
+    // 編成メンバーが1枠だけ入れ替わるため、チームおてぼ枚数も文脈ごとに数え直す
+    var baseCount = supportOtebonusCount(); // サポート4枠（その他のポケモン含む）のうち「あり」の数
+
+    // 切替先ごとに、その文脈でのチームおてぼ枚数・サポート合計・自身のレートを計算
+    var targetCalcs = state.switchTargets.map(function(t){
+      var teamCount = baseCount + (t.cfg.otebonus ? 1 : 0);
+
+      var effCfg = t.cfg, moonlight = null, mewBurst = null, mewHelpSupport = null, mimicMainContext = null;
+      if (t.key === 'cresselia'){
+        moonlight = computeMoonlightBurstEnergy(t);
+        effCfg = Object.assign({}, t.cfg, { energyPerSkill: moonlight.total });
+        mimicMainContext = { type:'cresselia', target:t };
+      } else if (t.key === 'mew' && t.cfg.mewMainSkill === 'berryBurst'){
+        mewBurst = computeMewBerryBurstEnergy(t);
+        effCfg = Object.assign({}, t.cfg, { energyPerSkill: mewBurst.total });
+        mimicMainContext = { type:'mewBerryBurst', target:t };
+      } else if (t.key === 'mew' && t.cfg.mewMainSkill === 'helpSupport_S'){
+        mewHelpSupport = computeMewHelpSupportEnergy(t);
+        effCfg = Object.assign({}, t.cfg, { energyPerSkill: mewHelpSupport.total });
+      } else if (t.key === 'mew' && MEW_3MODE_SKILLS.indexOf(t.cfg.mewMainSkill) !== -1){
+        effCfg = Object.assign({}, t.cfg, { energyPerSkill: computeMew3ModeEnergy(t.cfg) });
+      }
+
+      var sup = computeSupportTeamPerMin(teamCount, mimicMainContext);
+      var own = calcMemberDaily(t.key, effCfg, state.field, resolveSkillKind(t.key, effCfg), teamCount);
+
+      var strip = targetContainer.querySelector('[data-result="'+t.id+'"]');
+      if (strip) strip.outerHTML = resultStripHtml(own).replace('<div class="result-strip-block"','<div class="result-strip-block" data-result="'+t.id+'"');
+      if (t.key === 'cresselia'){
+        var noteEl = targetContainer.querySelector('[data-moonlight-note="'+t.id+'"]');
+        if (noteEl) noteEl.innerHTML = moonlightNoteHtml(t, moonlight);
+      }
+      if (t.key === 'mew'){
+        var burstNoteEl = targetContainer.querySelector('[data-mewburst-note="'+t.id+'"]');
+        if (burstNoteEl) burstNoteEl.innerHTML = mewBurst ? mewBerryBurstNoteHtml(t, mewBurst) : '';
+        var helpSupportNoteEl = targetContainer.querySelector('[data-mewhelpsupport-note="'+t.id+'"]');
+        if (helpSupportNoteEl) helpSupportNoteEl.innerHTML = mewHelpSupport ? mewHelpSupportNoteHtml(t, mewHelpSupport) : '';
+      }
+      // postRate：ゾーン補正対象（own.zonePerMin＝きのみ・スキル分＋サポートのzoneTotal）。
+      // postFlatRate：ゾーン補正対象外（own.flatPerMin＝切替先が食材エナジー反映対象の場合のみ非ゼロ。サポート側は常に0）。
+      return { target:t, teamCount, support:sup, own,
+        postRate: (own.zonePerMin != null ? own.zonePerMin : own.perMin) + sup.zoneTotal,
+        postFlatRate: (own.flatPerMin || 0) + sup.flatTotal };
+    });
+
+    // support member results（表示は先頭の切替先の文脈を基準にする）
+    var displayCalc = targetCalcs[0];
+    var display = displayCalc ? displayCalc.support : computeSupportTeamPerMin(baseCount);
+    state.support.forEach(function(entry){
+      if (entry.key === 'other') return;
+      var strip = supportContainer.querySelector('[data-result="'+entry.id+'"]');
+      var r = display.results[entry.id];
+      if (strip && r) strip.outerHTML = resultStripHtml(r).replace('<div class="result-strip-block"','<div class="result-strip-block" data-result="'+entry.id+'"');
+      if (entry.key === 'mrmime'){
+        // ミュウツー(切替元)・各切替先ごとに値が変わることを一目で確認できるよう、全文脈をまとめて表示する
+        var contexts = targetCalcs.map(function(tc){
+          var rr = tc.support.results[entry.id];
+          return { label: tc.target.name, mimic: rr ? rr.mimic : null };
+        });
+        var mimicNoteEl = supportContainer.querySelector('[data-mrmime-note="'+entry.id+'"]');
+        if (mimicNoteEl) mimicNoteEl.innerHTML = mrmimeMimicNoteHtml(contexts, displayCalc ? displayCalc.target.name : '');
+      }
+    });
+
+    var common = state.common, windowMin = common.window;
+
+    // 参考：入れ替えない場合の合計エナジー。
+    // (a) 切替先を最初からそのまま（丸ごと評価期間）使った場合＝ミュウツーを一切編成に入れないので「きのみゾーン」自体が
+    //     一度も育たない（ゾーンレベルは常に0%）想定。zone補正対象分もzl=0でそのまま（＝補正なし）、zone補正対象外分（食材エナジー等）は
+    //     元々補正の対象外なのでそのまま加算。tc.postRate/tc.postFlatRateはどちらも「1分あたり」なのでwindowMinを掛けるだけでよい。
+    var noSwitchRefs = targetCalcs.map(function(tc){
+      return { label: tc.target.name+'（切替なし・ゾーン補正なし）', total: (tc.postRate + tc.postFlatRate) * windowMin };
+    });
+
+    var computed = [];
+    state.mewtwoBuilds.forEach(function(b){
+      var buildTeamCount = baseCount + (b.otebonus ? 1 : 0);
+      var buildSupport = computeSupportTeamPerMin(buildTeamCount);
+      var own = calcMemberDaily('mewtwo', b, state.field, 'zero', buildTeamCount);
+      // preRate：ゾーン補正対象（own.zonePerMin＝きのみ分＋サポートのzoneTotal）。own.skillEnergyDayはskillKind='zero'指定のため
+      // 常に0（サイコブレイクのエナジーはこのゾーン設定側の別枠計算に一本化しているため二重計上しない、既存仕様のまま）。
+      // preFlatRate：ゾーン補正対象外（own.flatPerMin＝ミュウツーの食材エナジー。サポート側は常に0）。
+      var preRate = (own.zonePerMin != null ? own.zonePerMin : own.perMin) + buildSupport.zoneTotal;
+      var preFlatRate = (own.flatPerMin || 0) + buildSupport.flatTotal;
+      // エナジーチャージ部分・ゾーン1回あたり上昇値は、どちらもこのビルドのスキルLvから自動参照（ビルドごとに異なりうる）
+      var echarge = MEWTWO_ENERGY_CHARGE[b.zone.skillLevel] || MEWTWO_ENERGY_CHARGE[6];
+      var step = MEWTWO_ZONE_STEP[b.zone.skillLevel] || MEWTWO_ZONE_STEP[6];
+
+      var mewStrip = mewtwoContainer.querySelector('[data-result="'+b.id+'"]');
+      if (mewStrip) mewStrip.outerHTML = resultStripHtml(own).replace('<div class="result-strip-block"','<div class="result-strip-block" data-result="'+b.id+'"');
+      // own.skillEnergyDay・own.totalDay・own.perMinは常に0/きのみ分のみ（意図的：ミュウツー自身のスキルは
+      // 「発動ごとの固定加算」＋「ゾーン上昇による全体エナジー押し上げ」という形で、下のゾーン設定・比較サマリー側で
+      // 別途計算しているため、二重計上を避けてここでは0にしている）
+      // ゾーン成長率(%/24h) = 1日あたりのスキル発動期待値（own.skillCountDay、性格・サブスキル・レベル・フィールドを反映済み） × ゾーン1回あたり上昇値
+      var growth = own.skillCountDay * step;
+      var growthDisplay = mewtwoContainer.querySelector('[data-growth-display="'+b.id+'"]');
+      if (growthDisplay) growthDisplay.value = growth.toFixed(2)+'（'+own.skillCountDay.toFixed(2)+'回/日 × '+step+'%）';
+
+      // 開始時ゾーン期待値(%)：日曜夜に編成したまま寝て朝に発動させる想定。「所持数が埋まるまでに得られるスキル発動判定の期待値」
+      // （このビルドの所持数・おてスピ・スキル確率設定を反映したown.capacityFillHelps × own.skillProb）を、
+      // スキル発動権の上限（ミュウツーはスキルとくいのため2回、本人確認済み）でキャップしてからゾーン1回あたり上昇値を掛ける
+      var maxSkillRights = POKEMON_DB.mewtwo.maxSkillRights || 1;
+      var skillChecksUntilFull = (own.capacityFillHelps != null && isFinite(own.capacityFillHelps)) ? own.capacityFillHelps * own.skillProb : 0;
+      var effectiveSkillChecks = Math.min(skillChecksUntilFull, maxSkillRights);
+      var zoneIAuto = effectiveSkillChecks * step;
+      var zoneIDisplay = mewtwoContainer.querySelector('[data-zonei-display="'+b.id+'"]');
+      if (zoneIDisplay){
+        zoneIDisplay.value = zoneIAuto.toFixed(4)+'%（'+effectiveSkillChecks.toFixed(2)+'回 × '+step+'%'+
+          (skillChecksUntilFull > maxSkillRights
+            ? '｜理論値'+skillChecksUntilFull.toFixed(2)+'回→上限'+maxSkillRights+'回でキャップ'
+            : '｜理論値'+skillChecksUntilFull.toFixed(2)+'回（上限'+maxSkillRights+'回未満）')+'）';
+      }
+
+      // (b) 切替なしでこのビルドのままずっと使った場合＝simulate()にswitchThreshold=nullを渡すと、評価期間の全時間が
+      // 「切替元（ミュウツー）」側のレートで計算される（postRate側は使われないので0でよい）。zoneIAuto始点からgrowthで
+      // ゾーンが育ち続ける前提はそのまま反映される。どの切替先と組み合わせても値は変わらないため、ビルドごとに1つだけ計算する。
+      var neverSwitchResult = simulate(zoneIAuto, growth, preRate, 0, null, windowMin, step, common.cap, echarge, preFlatRate, 0);
+      noSwitchRefs.push({ label: b.name+'（切替なし）', total: neverSwitchResult.total });
+
+      var thresholds = thresholdsFor(step, common.cap);
+      // 0%（=即時切替、ゾーン補正0%のまま切替先に切り替える）を明示的な候補として含める。thresholdsFor()はstepから
+      // 始まるため元々0は含まれず、「今すぐ切り替える」パターンが候補から漏れていたのを補う。
+      var candidates = [0].concat(thresholds).concat([null]);
+
+      targetCalcs.forEach(function(tc){
+        var rows = candidates.map(function(th){
+          var r = simulate(zoneIAuto, growth, preRate, tc.postRate, th, windowMin, step, common.cap, echarge, preFlatRate, tc.postFlatRate);
+          return { threshold: th, result: r };
+        });
+        var best = rows.reduce(function(a,c){ return c.result.total > a.result.total ? c : a; });
+        var capTime = timeToCap(zoneIAuto, growth, common.cap);
+        computed.push({ build:b, target:tc.target, label: b.name+' → '+tc.target.name, rows, best, capTime, preRate, preFlatRate, postRate:tc.postRate, postFlatRate:tc.postFlatRate, growth, zoneI: zoneIAuto });
+      });
+    });
+
+    // summary strip
+    var topTotal = Math.max.apply(null, computed.map(function(c){return c.best.result.total;}));
+    var sorted = computed.slice().sort(function(a,b){return b.best.result.total-a.best.result.total;});
+    summaryGrid.innerHTML='';
+    sorted.forEach(function(c){
+      var isTop = c.best.result.total===topTotal;
+      var delta = topTotal>0 ? ((c.best.result.total-topTotal)/topTotal*100) : 0;
+      var thLabel = thresholdLabel(c.best.threshold, true);
+      var tile = document.createElement('div');
+      tile.className='summary-tile'+(isTop?' is-top':'');
+      tile.innerHTML =
+        (isTop?'<span class="badge">最有力</span>':'')+
+        '<span class="tile-name">'+escapeHtml(c.label)+'</span>'+
+        '<span class="tile-total mono">'+fmtInt(c.best.result.total)+'</span>'+
+        '<span class="tile-sub">'+thLabel+' ・ '+formatClock(c.best.result.switchTime)+(isTop?'':' ・ 最有力比 '+delta.toFixed(2)+'%')+'</span>'+
+        // 表示上の「レート」はゾーン補正対象分＋対象外分（食材エナジー等）の合計（実際の平均per分）。simulate()内部では
+        // ゾーン補正対象/対象外を分けて計算しているが、ここでの表示は分かりやすさのため合算する。
+        '<span class="tile-sub">レート: 切替元 <b class="mono">'+(c.preRate+(c.preFlatRate||0)).toFixed(2)+'</b>/分 → 切替先 <b class="mono">'+(c.postRate+(c.postFlatRate||0)).toFixed(2)+'</b>/分</span>';
+      summaryGrid.appendChild(tile);
+    });
+
+    // 参考グリッド：入れ替えない場合。上の「最適な切替」ランキングの最有力（topTotal）と比べてどれだけ差があるかも添える
+    summaryGridNoSwitch.innerHTML='';
+    noSwitchRefs.forEach(function(ref){
+      var delta = topTotal>0 ? ((ref.total-topTotal)/topTotal*100) : 0;
+      var tile = document.createElement('div');
+      tile.className='summary-tile';
+      tile.innerHTML =
+        '<span class="tile-name">'+escapeHtml(ref.label)+'</span>'+
+        '<span class="tile-total mono">'+fmtInt(ref.total)+'</span>'+
+        '<span class="tile-sub">上の最有力比 '+(delta>=0?'+':'')+delta.toFixed(2)+'%</span>';
+      summaryGridNoSwitch.appendChild(tile);
+    });
+
+    // detail blocks
+    resultsContainer.innerHTML='';
+    computed.forEach(function(c){
+      var thLabel = thresholdLabel(c.best.threshold, false);
+      var block=document.createElement('div');
+      block.innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;">'+
+          '<h3>'+escapeHtml(c.label)+'</h3>'+
+          '<span style="font-size:.85rem;color:var(--muted);">最適: <b class="mono" style="color:var(--ink);">'+thLabel+'（'+formatClock(c.best.result.switchTime)+'）</b> ／ 上限到達まで <b class="mono" style="color:var(--ink);">'+formatDuration(c.capTime)+'</b></span>'+
+        '</div>'+
+        renderChart(c.build, c.best.result, state.common, state.common.window, c.growth, c.zoneI)+
+        '<details style="margin-top:10px;"><summary>全切替候補の内訳を見る</summary><div class="table-wrap"></div></details>';
+      resultsContainer.appendChild(block);
+      var tableWrap = block.querySelector('.table-wrap');
+      var table = document.createElement('table');
+      table.innerHTML = '<thead><tr><th>切替ゾーン</th><th>切替時刻</th><th>新規発動</th><th>最終ゾーン</th><th>合計エナジー</th></tr></thead>';
+      var tbody = document.createElement('tbody');
+      c.rows.forEach(function(row){
+        var tr=document.createElement('tr');
+        if (row===c.best) tr.className='is-best';
+        var label = thresholdLabel(row.threshold, false);
+        tr.innerHTML = '<td>'+label+'</td><td>'+formatClock(row.result.switchTime)+'</td><td>'+row.result.activations+'回</td><td>'+fmtPct(row.result.finalZone)+'</td><td>'+fmtInt(row.result.total)+'</td>';
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody); tableWrap.appendChild(table);
+    });
+
+    renderFormula();
+    renderAuditSection(computed);
+  }
+  function renderResults(){ renderAll(); }
+
+  function renderFormula(){
+    document.getElementById('formula-box').textContent =
+"おてつだいスピード(秒) = rawBaseSpeed × (1-0.002×(Lv-1)) × 0.45 × (1-サブスキル合計%[上限35%]) × 性格 × フィールド速度倍率 ÷ (CTあり?1.2:1)\n"+
+"  サブスキル合計% = おてスピM?14% + おてスピS?7% + チームおてぼ枚数×5%（チーム全体で共有。「あり」の枠の数を全員のおてスピ計算に反映）\n"+
+"  フィールド速度倍率: ワカクサ本島/ラピス=1.0固定／ワカクサ本島EX=メイン一致0.9・サブ一致1.0・不一致1.15／シアンの砂浜EX=メイン一致0.8・サブ一致1.0・不一致1.35\n\n"+
+"スキル確率 = 基本確率 × (スキ確M?1.36) × (スキ確S?1.18) × 性格 × (EXフィールド効果=スキル?1.25)\n"+
+"食材確率   = 基本確率 × (食材M?1.36) × (食材S?1.18) × 性格\n\n"+
+"好物倍率 = 好物一致時 (EXフィールド効果=きのみ?2.4:2) ／ 不一致時は1\n"+
+"きのみエナジー/個 = round(max(基礎値+(Lv-1), 基礎値×1.025^(Lv-1)))\n"+
+"きのみエナジー/日 = (86400/おてスピ) × (1-食材確率) × きのみエナジー/個 × (基本個数+きのみS?1) × 好物倍率\n"+
+"スキルエナジー/日 = (86400/おてスピ) × スキル確率 × スキル1回あたりエナジー（EXメイン一致時はメインスキルLv+1、エナジーチャージM系のみ反映）\n\n"+
+"ゾーン(t) = min(上限, ステップ×floor((初期値I+成長率/24h/1440×t)/ステップ))\n"+
+"  ステップ（ゾーン1回あたり上昇値）・固定加算（エナジーチャージ）はどちらもミュウツーのスキルLv依存（raenonxのゲーム内データ、Lv1〜6）。上限(+24%)はLvによらず共通\n"+
+"  成長率(%/24h) = (86400/おてスピ) × スキル確率 × ステップ　※開始時ゾーン期待値(I)のみ、日またぎの待機ストック分を含む特殊な計算のため直接入力\n"+
+"  （簡略化した式。睡眠設定ONの場合は所持数ロス分を考慮した実際のスキル発動回数を使うため、この式どおりの単純計算とは値が若干異なる。正確な内訳は「検算用：計算過程の詳細」参照）\n\n"+
+"合計エナジー = Σ[区間] 切替元レート×分×(1+ゾーン%/100) + 新規発動回数×固定加算 + 切替先レート×残り分×(1+最終ゾーン%/100)";
+  }
+
+  // ---------- 検算用：計算過程の詳細（サブ機能） ----------
+  // 方針：上のcalcFinalSpeed/calcSkillProb/.../calcMemberDaily/simulate()を「今の設定値のまま、
+  // trace配列付きで再度呼び出す」ことで監査ログを組み立てる。再計算は同じ純粋関数を同じ引数で
+  // 呼ぶだけなので、上の本計算（renderAll側）と数値が食い違うことはない（副作用なし・DOM操作なし）。
+  function auditDetailsHtml(title, lines, openDefault){
+    return '<details'+(openDefault?' open':'')+'><summary>'+escapeHtml(title)+'</summary><div class="formula-box">'+escapeHtml((lines||[]).join('\n'))+'</div></details>';
+  }
+  function auditGroupHtml(title, innerHtml){
+    return '<details><summary>'+escapeHtml(title)+'</summary><div style="padding:8px 10px 10px;display:flex;flex-direction:column;gap:6px;">'+innerHtml+'</div></details>';
+  }
+  // サポート4枠（'その他のポケモン'枠はエナジー計算対象外のため除く）を、指定のチームおてぼ枚数・ものまね文脈で
+  // 1体ずつtrace付きで計算し、メンバーごとのdetailsを並べたHTMLと、ゾーン対象/対象外レートの合計を返す。
+  function auditSupportTeam(teamCount, mainContext, contextLabel){
+    var zoneTotal=0, flatTotal=0, total=0, memberHtml='';
+    state.support.forEach(function(entry){
+      if (entry.key === 'other') return; // エナジー計算対象外（'その他のポケモン'枠）
+      var effCfg = entry.cfg;
+      var mtrace = [];
+      if (entry.key === 'mrmime'){
+        var mimic = computeMrmimeMimicEnergy(entry, mainContext || null);
+        effCfg = Object.assign({}, entry.cfg, { energyPerSkill: mimic.avg });
+        mtrace.push('■ ものまね：主力「'+contextLabel+'」時の4候補平均コピー結果 → 1回あたり '+fmtN(mimic.avg,2)+' エナジー（内訳はサポート欄の個別ノート参照）');
+      }
+      var r = calcMemberDaily(entry.key, effCfg, state.field, SKILL_KIND[entry.key], teamCount, mtrace);
+      total += r.perMin; zoneTotal += (r.zonePerMin != null ? r.zonePerMin : r.perMin); flatTotal += (r.flatPerMin || 0);
+      memberHtml += auditDetailsHtml(POKEMON_DB[entry.key].name+'（'+contextLabel+'時）', mtrace);
+    });
+    return { total:total, zoneTotal:zoneTotal, flatTotal:flatTotal, html:memberHtml };
+  }
+  function renderAuditSection(computed){
+    var container = document.getElementById('audit-container');
+    if (!container) return;
+    var common = state.common, windowMin = common.window;
+    var baseCount = supportOtebonusCount();
+    var html = '';
+
+    html += '<h3 style="margin:4px 0 6px;font-size:.9rem;color:var(--muted);">■ ミュウツー 設定別（切替元・ゾーン成長）</h3>';
+    var buildAudits = {};
+    state.mewtwoBuilds.forEach(function(b){
+      var buildTeamCount = baseCount + (b.otebonus ? 1 : 0);
+      var trace = [];
+      trace.push('■ チームおてぼ枚数 = 基礎'+baseCount+'枚（サポート4枠のうち「あり」の数） + 自身のおてぼ('+(b.otebonus?'あり':'なし')+') = '+buildTeamCount+'枚');
+      var own = calcMemberDaily('mewtwo', b, state.field, 'zero', buildTeamCount, trace);
+      var buildSupportAudit = auditSupportTeam(buildTeamCount, null, b.name+'（切替元）');
+      var preRate = (own.zonePerMin != null ? own.zonePerMin : own.perMin) + buildSupportAudit.zoneTotal;
+      var preFlatRate = (own.flatPerMin || 0) + buildSupportAudit.flatTotal;
+      var echarge = MEWTWO_ENERGY_CHARGE[b.zone.skillLevel] || MEWTWO_ENERGY_CHARGE[6];
+      var step = MEWTWO_ZONE_STEP[b.zone.skillLevel] || MEWTWO_ZONE_STEP[6];
+      var growth = own.skillCountDay * step;
+      trace.push('■ ゾーン成長率(%/24h) = 1日のスキル発動回数('+fmtN(own.skillCountDay,3)+'回) × ゾーン1回あたり上昇値（スキルLv'+b.zone.skillLevel+'→'+step+'%） = '+fmtN(growth,4)+'%/24h');
+      trace.push('■ エナジーチャージ固定加算（スキルLv'+b.zone.skillLevel+'） = '+echarge);
+      var maxSkillRights = POKEMON_DB.mewtwo.maxSkillRights || 1;
+      var skillChecksUntilFull = (own.capacityFillHelps != null && isFinite(own.capacityFillHelps)) ? own.capacityFillHelps * own.skillProb : 0;
+      var effectiveSkillChecks = Math.min(skillChecksUntilFull, maxSkillRights);
+      var zoneIAuto = effectiveSkillChecks * step;
+      trace.push('■ 開始時ゾーン期待値(I) = min(満杯までのスキル判定回数('+fmtN(own.capacityFillHelps,3)+'回×スキル確率'+fmtN(own.skillProb*100,3)+'%='+fmtN(skillChecksUntilFull,3)+'回), 発動権上限'+maxSkillRights+'回) × ステップ'+step+'% = '+fmtN(effectiveSkillChecks,3)+'回×'+step+'% = '+fmtN(zoneIAuto,4)+'%');
+      trace.push('■ 切替元レート（ゾーン対象） = 本体('+fmtN(own.zonePerMin,3)+') + サポート4枠合計('+fmtN(buildSupportAudit.zoneTotal,3)+') = '+fmtN(preRate,3)+'/分');
+      trace.push('■ 切替元レート（ゾーン対象外） = 本体('+fmtN(own.flatPerMin||0,3)+') + サポート4枠合計('+fmtN(buildSupportAudit.flatTotal,3)+') = '+fmtN(preFlatRate,3)+'/分');
+      buildAudits[b.id] = { own:own, growth:growth, zoneIAuto:zoneIAuto, step:step, echarge:echarge, preRate:preRate, preFlatRate:preFlatRate };
+      html += auditGroupHtml(b.name, auditDetailsHtml(b.name+' 本体', trace, false) + auditGroupHtml(b.name+'時のサポート4枠', buildSupportAudit.html));
+    });
+
+    html += '<h3 style="margin:16px 0 6px;font-size:.9rem;color:var(--muted);">■ 切替先別</h3>';
+    var targetAudits = {};
+    state.switchTargets.forEach(function(t){
+      var teamCount = baseCount + (t.cfg.otebonus ? 1 : 0);
+      var trace = [];
+      trace.push('■ チームおてぼ枚数 = 基礎'+baseCount+'枚 + 自身のおてぼ('+(t.cfg.otebonus?'あり':'なし')+') = '+teamCount+'枚');
+      var effCfg = t.cfg, mimicMainContext = null;
+      if (t.key === 'cresselia'){
+        var moonlight = computeMoonlightBurstEnergy(t);
+        effCfg = Object.assign({}, t.cfg, { energyPerSkill: moonlight.total });
+        mimicMainContext = { type:'cresselia', target:t };
+        trace.push('■ みかづきのいのり：エスパー種族数'+moonlight.psychicCount+'・スキルLv'+moonlight.skillLevel+' → 自分'+moonlight.data.self+'個('+fmtN(moonlight.selfEnergy,2)+')＋チーム'+moonlight.data.team+'個×'+moonlight.teamBreakdown.length+'体('+fmtN(moonlight.teamEnergy,2)+') = 1回あたり'+fmtN(moonlight.total,2)+'エナジー（＝この後の「スキル1回あたりエナジー」として使われる）');
+      } else if (t.key === 'mew' && t.cfg.mewMainSkill === 'berryBurst'){
+        var mewBurst = computeMewBerryBurstEnergy(t);
+        effCfg = Object.assign({}, t.cfg, { energyPerSkill: mewBurst.total });
+        mimicMainContext = { type:'mewBerryBurst', target:t };
+        trace.push('■ 標準きのみバースト：スキルLv'+mewBurst.skillLevel+' → 自分'+fmtN(mewBurst.data.self,2)+'個('+fmtN(mewBurst.selfEnergy,2)+')＋チーム('+fmtN(mewBurst.teamEnergy,2)+') = 1回あたり'+fmtN(mewBurst.total,2)+'エナジー');
+      } else if (t.key === 'mew' && t.cfg.mewMainSkill === 'helpSupport_S'){
+        var mewHelpSupport = computeMewHelpSupportEnergy(t);
+        effCfg = Object.assign({}, t.cfg, { energyPerSkill: mewHelpSupport.total });
+        trace.push('■ おてつだいサポートS：スキルLv'+mewHelpSupport.skillLevel+'（'+mewHelpSupport.helpCount+'回）・'+mewHelpSupport.members.length+'体平均'+fmtN(mewHelpSupport.avgPerHelp,2)+'/回 × '+mewHelpSupport.helpCount+'回 = 1回あたり'+fmtN(mewHelpSupport.total,2)+'エナジー');
+      } else if (t.key === 'mew' && MEW_3MODE_SKILLS.indexOf(t.cfg.mewMainSkill) !== -1){
+        var e3 = computeMew3ModeEnergy(t.cfg);
+        effCfg = Object.assign({}, t.cfg, { energyPerSkill: e3 });
+        trace.push('■ 3択スキル（'+(t.cfg.mewMode||'multiplier')+'モード） → 1回あたり'+fmtN(e3,2)+'エナジー');
+      }
+      var own = calcMemberDaily(t.key, effCfg, state.field, resolveSkillKind(t.key, effCfg), teamCount, trace);
+      var supportAudit = auditSupportTeam(teamCount, mimicMainContext, t.name);
+      var postRate = (own.zonePerMin != null ? own.zonePerMin : own.perMin) + supportAudit.zoneTotal;
+      var postFlatRate = (own.flatPerMin || 0) + supportAudit.flatTotal;
+      trace.push('■ 切替先レート（ゾーン対象） = 本体('+fmtN(own.zonePerMin,3)+') + サポート4枠合計('+fmtN(supportAudit.zoneTotal,3)+') = '+fmtN(postRate,3)+'/分');
+      trace.push('■ 切替先レート（ゾーン対象外） = 本体('+fmtN(own.flatPerMin||0,3)+') + サポート4枠合計('+fmtN(supportAudit.flatTotal,3)+') = '+fmtN(postFlatRate,3)+'/分');
+      targetAudits[t.id] = { own:own, postRate:postRate, postFlatRate:postFlatRate };
+      html += auditGroupHtml(t.name, auditDetailsHtml(t.name+' 本体', trace, false) + auditGroupHtml(t.name+'時のサポート4枠', supportAudit.html));
+    });
+
+    html += '<h3 style="margin:16px 0 6px;font-size:.9rem;color:var(--muted);">■ 比較行ごとの最終シミュレーション（最有力の切替タイミングのみ）</h3>';
+    html += '<p class="note" style="margin-bottom:8px;">上のサポート4枠は文脈（どの設定／切替先が主力か）によってチームおてぼ枚数・ものまねコピー対象が変わるため、値がわずかに異なる場合がある。ここでは各比較行で実際に使われた切替元・切替先それぞれのレートを使って最終シミュレーションを検算する。</p>';
+    (computed||[]).forEach(function(c){
+      var ba = buildAudits[c.build.id], ta = targetAudits[c.target.id];
+      if (!ba || !ta) return;
+      var simTrace = [];
+      simulate(ba.zoneIAuto, ba.growth, ba.preRate, ta.postRate, c.best.threshold, windowMin, ba.step, common.cap, ba.echarge, ba.preFlatRate, ta.postFlatRate, simTrace);
+      html += auditDetailsHtml(c.label+'（採用: '+thresholdLabel(c.best.threshold, true)+'）', simTrace);
+    });
+
+    container.innerHTML = html;
+  }
+
+  // ---------- boot ----------
+  function boot(data){
+    if (data && data.state) state = data.state;
+    fillFieldInputs();
+    renderSupportInputs();
+    renderMewtwoInputs();
+    renderTargetInputs();
+    fillCommonInputs();
+    renderAll();
+  }
+  if (window.claude && window.claude.hot && window.claude.hot.snapshot){
+    window.claude.hot.snapshot(function(){ return { state: state }; });
+  }
+  if (window.claude && window.claude.hot && window.claude.hot.ready){
+    window.claude.hot.ready(boot);
+  } else {
+    boot(window.claude && window.claude.hot ? window.claude.hot.data : null);
+  }
+})();
+</script>
+</body>
+</html>
