@@ -147,6 +147,7 @@
   footer{ font-size:.78rem; color:var(--muted); line-height:1.8; padding-top:6px; border-top:1px solid var(--border); }
 </style>
 
+
 </head>
 <body>
 <div class="wrap">
@@ -313,6 +314,15 @@
       <div class="field"><label for="sleep-start">就寝時刻</label><input type="time" id="sleep-start"></div>
       <div class="field"><label for="sleep-end">起床時刻</label><input type="time" id="sleep-end"></div>
     </div>
+    <div class="field-row">
+      <div class="field">
+        <span class="mini-label">スキル発動天井（連続不発天井）を考慮</span>
+        <div class="tri">
+          <label><input type="radio" name="skill-pity-enabled" id="skill-pity-enabled-on" value="1"><span>考慮する</span></label>
+          <label><input type="radio" name="skill-pity-enabled" id="skill-pity-enabled-off" value="0"><span>考慮しない</span></label>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section class="card">
@@ -360,6 +370,15 @@
     <div id="audit-container"></div>
   </section>
 
+  <details style="margin-top:2px;">
+    <summary style="font-size:.78rem; color:var(--muted); font-weight:600;">更新履歴</summary>
+    <div style="padding:10px 14px 14px; display:flex; flex-direction:column; gap:8px;">
+      <div class="note" style="margin:0;">
+        <strong>2026/09/17</strong>　スキル発動天井（連続不発天井）に対応。一定回数連続でスキル不発が続くと次回発動が保証される仕様を、スキル確率の計算に反映（対象：ミュウツー・ミュウ・クレセリア・サーナイト・エーフィ・ネイティオ・ムシャーナ・バリヤード）。「評価期間共通設定」でON/OFF切替可（デフォルトON）。
+      </div>
+    </div>
+  </details>
+
 </div>
 
 <script>
@@ -380,23 +399,23 @@
     // （本人確認済み・2026/09/15：「ミュウツー,クレセリア,ミュウに関しては食材エナジーを反映させたい」）。
     // サポート4枠（サーナイト・エーフィ・ネイティオ・ボーマンダ・ムシャーナ・バリヤード）は対象外のまま据え置き。
     // energy値はtool.html由来（食材ごとの基礎エナジーは種族に依存せず食材名で一意に決まる）。
-    mewtwo:    { name:'ミュウツー', type:'エスパー', rawBaseSpeed:2300, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.160, skillProb:0.029, baseCapacity:24, specialty:'スキルとくい', defaultBerryCount:1, evolutionStages:0, maxSkillRights:2, foodEnergyTracked:true, // 伝説・無進化・スキル発動権上限2（スキルとくい、本人確認済み・2026/09/15）
+    mewtwo:    { name:'ミュウツー', type:'エスパー', rawBaseSpeed:2300, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.160, skillProb:0.029, skillPity:62, baseCapacity:24, specialty:'スキルとくい', defaultBerryCount:1, evolutionStages:0, maxSkillRights:2, foodEnergyTracked:true, // 伝説・無進化・スキル発動権上限2（スキルとくい、本人確認済み・2026/09/15）
       // ミュウツーはtool.htmlにデータが無いため、他種族の同名食材エントリからenergy値を転記（食材名で一意に決まるため）
       foodSlots: { lv1:[{label:'A',name:'ワカクサ大豆',count:1,energy:100}], lv30:[{label:'A',name:'ワカクサ大豆',count:2,energy:100},{label:'B',name:'ワカクサコーン',count:2,energy:140}], lv60:[{label:'A',name:'ワカクサ大豆',count:4,energy:100},{label:'B',name:'ワカクサコーン',count:3,energy:140},{label:'C',name:'ほっこりポテト',count:3,energy:124}] } },
-    gardevoir: { name:'サーナイト', type:'エスパー', rawBaseSpeed:2400, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.144, skillProb:0.042, baseCapacity:18, specialty:'スキルとくい', defaultBerryCount:1, evolutionStages:2, // モンジャラ→キルリア→サーナイト
+    gardevoir: { name:'サーナイト', type:'エスパー', rawBaseSpeed:2400, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.144, skillProb:0.042, skillPity:60, baseCapacity:18, specialty:'スキルとくい', defaultBerryCount:1, evolutionStages:2, // モンジャラ→キルリア→サーナイト
       foodSlots: { lv1:[{label:'A',name:'とくせんリンゴ',count:1}], lv30:[{label:'A',name:'とくせんリンゴ',count:2},{label:'B',name:'ワカクサコーン',count:1}], lv60:[{label:'A',name:'とくせんリンゴ',count:4},{label:'B',name:'ワカクサコーン',count:2},{label:'C',name:'ふといながねぎ',count:2}] } },
-    espeon:    { name:'エーフィ',   type:'エスパー', rawBaseSpeed:2400, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.164, skillProb:0.044, baseCapacity:21, specialty:'スキルとくい', defaultBerryCount:1, evolutionStages:1, // イーブイ→エーフィ
+    espeon:    { name:'エーフィ',   type:'エスパー', rawBaseSpeed:2400, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.164, skillProb:0.044, skillPity:60, baseCapacity:21, specialty:'スキルとくい', defaultBerryCount:1, evolutionStages:1, // イーブイ→エーフィ
       foodSlots: { lv1:[{label:'A',name:'モーモーミルク',count:1}], lv30:[{label:'A',name:'モーモーミルク',count:2},{label:'B',name:'リラックスカカオ',count:1}], lv60:[{label:'A',name:'モーモーミルク',count:4},{label:'B',name:'リラックスカカオ',count:2},{label:'C',name:'マメミート',count:3}] } },
-    xatu:      { name:'ネイティオ', type:'エスパー', rawBaseSpeed:2500, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.191, skillProb:0.025, baseCapacity:24, specialty:'きのみとくい', defaultBerryCount:2, evolutionStages:1, idleAllDay:true }, // ネイティ→ネイティオ（きのみ得意のため所持数キャップ自体を使わず影響なし）
-    cresselia: { name:'クレセリア', type:'エスパー', rawBaseSpeed:2300, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.239, skillProb:0.041, baseCapacity:22, specialty:'スキルとくい', defaultBerryCount:1, evolutionStages:0, foodEnergyTracked:true, // 伝説・無進化
+    xatu:      { name:'ネイティオ', type:'エスパー', rawBaseSpeed:2500, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.191, skillProb:0.025, skillPity:78, baseCapacity:24, specialty:'きのみとくい', defaultBerryCount:2, evolutionStages:1, idleAllDay:true }, // ネイティ→ネイティオ（きのみ得意のため所持数キャップ自体を使わず影響なし）
+    cresselia: { name:'クレセリア', type:'エスパー', rawBaseSpeed:2300, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.239, skillProb:0.041, skillPity:62, baseCapacity:22, specialty:'スキルとくい', defaultBerryCount:1, evolutionStages:0, foodEnergyTracked:true, // 伝説・無進化
       foodSlots: { lv1:[{label:'A',name:'あったかジンジャー',count:1,energy:109}], lv30:[{label:'A',name:'あったかジンジャー',count:2,energy:109},{label:'B',name:'リラックスカカオ',count:2,energy:151}], lv60:[{label:'A',name:'あったかジンジャー',count:4,energy:109},{label:'B',name:'リラックスカカオ',count:3,energy:151},{label:'C',name:'あんみんトマト',count:4,energy:110}] } },
-    musharna:  { name:'ムシャーナ', type:'エスパー', rawBaseSpeed:2800, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.188, skillProb:0.041, baseCapacity:29, specialty:'きのみとくい', defaultBerryCount:2, evolutionStages:1, idleAllDay:true }, // ムンナ→ムシャーナ（同上・影響なし）
-    mrmime:    { name:'バリヤード', type:'エスパー', rawBaseSpeed:2800, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.216, skillProb:0.039, baseCapacity:17, specialty:'食材とくい', defaultBerryCount:1, evolutionStages:1, // マイムット→バリヤード
+    musharna:  { name:'ムシャーナ', type:'エスパー', rawBaseSpeed:2800, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.188, skillProb:0.041, skillPity:78, baseCapacity:29, specialty:'きのみとくい', defaultBerryCount:2, evolutionStages:1, idleAllDay:true }, // ムンナ→ムシャーナ（同上・影響なし）
+    mrmime:    { name:'バリヤード', type:'エスパー', rawBaseSpeed:2800, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.216, skillProb:0.039, skillPity:78, baseCapacity:17, specialty:'食材とくい', defaultBerryCount:1, evolutionStages:1, // マイムット→バリヤード
       foodSlots: { lv1:[{label:'A',name:'あんみんトマト',count:2}], lv30:[{label:'A',name:'あんみんトマト',count:5},{label:'B',name:'ほっこりポテト',count:4}], lv60:[{label:'A',name:'あんみんトマト',count:7},{label:'B',name:'ほっこりポテト',count:6},{label:'C',name:'ふといながねぎ',count:4}] } },
     // ミュウは他の8体と同じfoodSlots構造（tool.html準拠・2026/09/15の最新アップロード版で確認）。
     // Lv1も他の8体と違い「選択制」（7候補中1つを個体が持つ。全て個数2だがエナジーは食材名により異なる。このツールではエナジー差は未計算）。
     // Lv30・Lv60も同様に候補から1つ選択（tool.htmlの入替候補ダークライと同じ選択方式）。
-    mew:       { name:'ミュウ',     type:'エスパー', rawBaseSpeed:2900, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.200, skillProb:0.040, baseCapacity:26, specialty:'オール', defaultBerryCount:2, evolutionStages:0, foodEnergyTracked:true, // 幻・無進化
+    mew:       { name:'ミュウ',     type:'エスパー', rawBaseSpeed:2900, berryName:'マゴのみ', berryBaseEnergy:26, foodProb:0.200, skillProb:0.040, skillPity:49, baseCapacity:26, specialty:'オール', defaultBerryCount:2, evolutionStages:0, foodEnergyTracked:true, // 幻・無進化
       foodSlots: {
         // A〜Gは全レベル帯で同じ食材（ふといながねぎ〜つやつやアボカド）に統一したラベル。HはLv60のみ追加される「おいしいシッポ」。
         // energy値はtool.html「ミュウ」自身のfoodSlotsエントリから直接転記（2026/09/15確認）。
@@ -671,7 +690,7 @@
       defaultMewtwoBuildCfg({ id:'b1', name:'きのみ型ミュウツー', speedM:true, berryS:true }),
       defaultMewtwoBuildCfg({ id:'b2', name:'スキル型ミュウツー', speedM:true, skillM:true })
     ],
-    common: { cap:24, window:6720, sleep:{ enabled:false, start:'23:00', end:'07:00' }, eventCapacityBonus:0,
+    common: { cap:24, window:6720, sleep:{ enabled:false, start:'23:00', end:'07:00' }, eventCapacityBonus:0, skillPityEnabled:true,
       eventCorrection: { typeRestriction:false, types:[], specialtyRestriction:false, specialties:[],
         skillMode:'1.0', skillCustom:1.0, berryCount:0, foodCount:0, berryBurstMode:'1.0', berryBurstCustom:1.0 } },
     start: { dow:0, time:'04:00' },
@@ -728,6 +747,10 @@
   if (typeof state.common.eventCapacityBonus === 'undefined'){
     // 旧保存データ（イベント最大所持数ボーナス設定を持たない）からの移行：デフォルト「通常」（0）で追加する
     state.common.eventCapacityBonus = 0;
+  }
+  if (typeof state.common.skillPityEnabled === 'undefined'){
+    // 旧保存データ（スキル発動天井の考慮設定を持たない）からの移行：デフォルト「考慮する」（raenonx本家準拠）で追加する
+    state.common.skillPityEnabled = true;
   }
   if (!state.common.eventCorrection){
     // 旧保存データ（イベント補正の詳細設定を持たない）からの移行：全て「通常」扱いで追加する
@@ -879,12 +902,20 @@
     var afterEx = p;
     var eventApplies = eventCorrectionMatchesDb(db);
     if (eventApplies) p *= eventSkillMultiplier();
+    var beforePity = p;
+    var pityApplies = !!(state.common.skillPityEnabled && db.skillPity);
+    if (pityApplies){
+      // スキル連続不発天井：db.skillPity回連続不発で次回100%保証となる仕様を反映した実質発動率へ補正
+      // r' = r / (1 - (1-r)^(x+1))  （x=天井回数、r=天井考慮前の確率）
+      p = beforePity / (1 - Math.pow(1-beforePity, db.skillPity+1));
+    }
     if (trace){
       trace.push('[スキル確率] '+db.name);
       trace.push('  基本確率 '+fmtN(base*100,3)+'%'+(cfg.skillM?' ×1.36(スキ確M)':'')+(cfg.skillS?' ×1.18(スキ確S)':'')+' = '+fmtN(afterSub*100,3)+'%');
       trace.push('  ×性格['+cfg.skl+']('+NATURE_PROB[cfg.skl]+') = '+fmtN(afterNature*100,3)+'%');
       trace.push('  '+(fx.exOther==='skill'?'×1.25（EXフィールド効果=スキル）':'（EXフィールド効果対象外）')+' = '+fmtN(afterEx*100,3)+'%');
-      trace.push('  '+(eventApplies?'×'+eventSkillMultiplier()+'（イベント補正・対象一致）':'（イベント補正：対象外）')+' = '+fmtN(p*100,3)+'%');
+      trace.push('  '+(eventApplies?'×'+eventSkillMultiplier()+'（イベント補正・対象一致）':'（イベント補正：対象外）')+' = '+fmtN(beforePity*100,3)+'%');
+      trace.push('  '+(pityApplies?('天井考慮：r\'=r/(1-(1-r)^('+db.skillPity+'+1))（'+db.skillPity+'連続不発で次回100%保証）')+' = '+fmtN(p*100,3)+'%':(db.skillPity?'（天井考慮：OFF）':'（天井仕様なし）')));
     }
     return p;
   }
@@ -1974,6 +2005,7 @@
       endDowEl=document.getElementById('end-dow'), endTimeEl=document.getElementById('end-time'),
       sleepEnabledEls=document.querySelectorAll('input[name="sleep-enabled"]'), sleepStartEl=document.getElementById('sleep-start'), sleepEndEl=document.getElementById('sleep-end'),
       eventCapacityEls=document.querySelectorAll('input[name="event-capacity"]'),
+      skillPityEnabledEls=document.querySelectorAll('input[name="skill-pity-enabled"]'),
       ecTypeRestrictEls=document.querySelectorAll('input[name="ec-type-restrict"]'), ecSpecialtyRestrictEls=document.querySelectorAll('input[name="ec-specialty-restrict"]'),
       ecTypeBoxEl=document.getElementById('ec-type-box'), ecSpecialtyBoxEl=document.getElementById('ec-specialty-box'),
       ecTypeChipsEl=document.getElementById('ec-type-chips'),
@@ -1995,6 +2027,7 @@
     sleepStartEl.value=state.common.sleep.start; sleepEndEl.value=state.common.sleep.end;
     sleepStartEl.disabled = sleepEndEl.disabled = !state.common.sleep.enabled;
     eventCapacityEls.forEach(function(el){ el.checked = (parseInt(el.value,10) === (parseInt(state.common.eventCapacityBonus,10)||0)); });
+    skillPityEnabledEls.forEach(function(el){ el.checked = ((el.value==='1') === !!state.common.skillPityEnabled); });
 
     var ec = state.common.eventCorrection;
     ecTypeRestrictEls.forEach(function(el){ el.checked = (el.value === (ec.typeRestriction ? '1' : '0')); });
@@ -2026,6 +2059,7 @@
   sleepStartEl.addEventListener('change',function(){ state.common.sleep.start=sleepStartEl.value; saveState(); renderAll(); });
   sleepEndEl.addEventListener('change',function(){ state.common.sleep.end=sleepEndEl.value; saveState(); renderAll(); });
   eventCapacityEls.forEach(function(el){ el.addEventListener('change',function(){ if(el.checked){ state.common.eventCapacityBonus = parseInt(el.value,10)||0; saveState(); renderAll(); } }); });
+  skillPityEnabledEls.forEach(function(el){ el.addEventListener('change',function(){ if(el.checked){ state.common.skillPityEnabled=(el.value==='1'); saveState(); renderAll(); } }); });
 
   ecTypeRestrictEls.forEach(function(el){ el.addEventListener('change',function(){ if(el.checked){ state.common.eventCorrection.typeRestriction=(el.value==='1'); ecTypeBoxEl.style.display=(el.value==='1')?'block':'none'; saveState(); renderAll(); } }); });
   ecSpecialtyRestrictEls.forEach(function(el){ el.addEventListener('change',function(){ if(el.checked){ state.common.eventCorrection.specialtyRestriction=(el.value==='1'); ecSpecialtyBoxEl.style.display=(el.value==='1')?'block':'none'; saveState(); renderAll(); } }); });
@@ -2326,7 +2360,8 @@
 "おてつだいスピード(秒) = rawBaseSpeed × (1-0.002×(Lv-1)) × 0.45 × (1-サブスキル合計%[上限35%]) × 性格 × フィールド速度倍率 ÷ (CTあり?1.2:1)\n"+
 "  サブスキル合計% = おてスピM?14% + おてスピS?7% + チームおてぼ枚数×5%（チーム全体で共有。「あり」の枠の数を全員のおてスピ計算に反映）\n"+
 "  フィールド速度倍率: ワカクサ本島/ラピス=1.0固定／ワカクサ本島EX=メイン一致0.9・サブ一致1.0・不一致1.15／シアンの砂浜EX=メイン一致0.8・サブ一致1.0・不一致1.35\n\n"+
-"スキル確率 = 基本確率 × (スキ確M?1.36) × (スキ確S?1.18) × 性格 × (EXフィールド効果=スキル?1.25)\n"+
+"スキル確率 = 基本確率 × (スキ確M?1.36) × (スキ確S?1.18) × 性格 × (EXフィールド効果=スキル?1.25) × (イベント補正該当?倍率) → 天井補正\n"+
+"  天井補正（スキル発動天井＝連続不発天井、共通設定でON/OFF可・種族ごとに天井回数が異なる）：r'= r ÷ (1-(1-r)^(天井回数+1))　（天井回数連続不発で次回100%保証となる仕様の期待値換算。出典：raenonx https://pks.raenonx.cc/ja/docs/view/mechanics/skill-pity）\n"+
 "食材確率   = 基本確率 × (食材M?1.36) × (食材S?1.18) × 性格\n\n"+
 "好物倍率 = 好物一致時 (EXフィールド効果=きのみ?2.4:2) ／ 不一致時は1\n"+
 "きのみエナジー/個 = round(max(基礎値+(Lv-1), 基礎値×1.025^(Lv-1)))\n"+
